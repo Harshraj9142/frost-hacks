@@ -78,16 +78,22 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Enhanced out-of-scope detection with multiple thresholds
+    // Enhanced out-of-scope detection with adjusted thresholds
     const RELEVANCE_THRESHOLDS = {
-      HIGH_QUALITY: 0.70,      // Strong match - definitely in scope
-      ACCEPTABLE: 0.55,        // Acceptable match - likely in scope
-      OUT_OF_SCOPE: 0.45,      // Below this - definitely out of scope
+      HIGH_QUALITY: 0.65,      // Strong match - definitely in scope
+      ACCEPTABLE: 0.50,        // Acceptable match - likely in scope
+      OUT_OF_SCOPE: 0.40,      // Below this - definitely out of scope
     };
 
     const bestScore = relevantDocs[0]?.score || 0;
     const highQualityDocs = relevantDocs.filter(doc => doc.score >= RELEVANCE_THRESHOLDS.ACCEPTABLE);
     const hasStrongMatch = relevantDocs.some(doc => doc.score >= RELEVANCE_THRESHOLDS.HIGH_QUALITY);
+    
+    console.log("Relevance scores:", {
+      bestScore: bestScore.toFixed(3),
+      highQualityCount: highQualityDocs.length,
+      hasStrongMatch,
+    });
     
     // STRICT OUT-OF-SCOPE REJECTION
     if (bestScore < RELEVANCE_THRESHOLDS.OUT_OF_SCOPE) {
@@ -146,93 +152,82 @@ I can only provide accurate answers for questions directly covered in your cours
       });
     }
 
-    // Build context from retrieved documents with better organization
-    // Group by relevance tiers for better context understanding
-    const veryHighRelevance = highQualityDocs.filter(doc => doc.score >= 0.80);
-    const highRelevance = highQualityDocs.filter(doc => doc.score >= 0.70 && doc.score < 0.80);
-    const mediumRelevance = highQualityDocs.filter(doc => doc.score >= 0.60 && doc.score < 0.70);
+    // Build context from retrieved documents with improved organization
+    // Use all high quality docs without over-categorizing
+    let context = "=== COURSE MATERIALS (Ordered by Relevance) ===\n\n";
+    
+    highQualityDocs.forEach((doc, i) => {
+      const sourceNum = i + 1;
+      const relevancePercent = (doc.score * 100).toFixed(1);
+      context += `[Source ${sourceNum}] (${doc.metadata.fileName}, Relevance: ${relevancePercent}%)\n`;
+      context += `${doc.text}\n\n`;
+      if (i < highQualityDocs.length - 1) {
+        context += "---\n\n";
+      }
+    });
 
-    let context = "";
-    
-    if (veryHighRelevance.length > 0) {
-      context += "=== HIGHLY RELEVANT INFORMATION ===\n\n";
-      context += veryHighRelevance
-        .map((doc, i) => `[Source ${i + 1}] (${doc.metadata.fileName}, Relevance: ${(doc.score * 100).toFixed(1)}%)\n${doc.text}`)
-        .join("\n\n---\n\n");
-    }
-    
-    if (highRelevance.length > 0) {
-      if (context) context += "\n\n";
-      context += "=== RELEVANT SUPPORTING INFORMATION ===\n\n";
-      context += highRelevance
-        .map((doc, i) => `[Source ${veryHighRelevance.length + i + 1}] (${doc.metadata.fileName}, Relevance: ${(doc.score * 100).toFixed(1)}%)\n${doc.text}`)
-        .join("\n\n---\n\n");
-    }
-    
-    if (mediumRelevance.length > 0) {
-      if (context) context += "\n\n";
-      context += "=== ADDITIONAL CONTEXT ===\n\n";
-      context += mediumRelevance
-        .map((doc, i) => `[Source ${veryHighRelevance.length + highRelevance.length + i + 1}] (${doc.metadata.fileName}, Relevance: ${(doc.score * 100).toFixed(1)}%)\n${doc.text}`)
-        .join("\n\n---\n\n");
-    }
+    console.log("Context built with", highQualityDocs.length, "sources");
 
     // Create system prompt based on tutor mode
-    const directModePrompt = `You are an expert AI tutor that helps students learn effectively by providing clear, accurate answers based on their course materials.
+    const directModePrompt = `You are an expert AI tutor that helps students learn effectively by providing clear, accurate answers based STRICTLY on their course materials.
 
-CRITICAL ACCURACY RULES:
+CRITICAL ACCURACY RULES - FOLLOW THESE EXACTLY:
 1. ONLY use information EXPLICITLY stated in the provided context below
-2. If information is not in the context, clearly state: "This specific information isn't covered in your course materials"
-3. NEVER infer, assume, or add information not present in the context
-4. When uncertain, acknowledge it: "Based on the materials, it seems..." or "The context suggests..."
-5. Cite which source you're referencing: "According to Source 1..." or "The materials mention..."
-6. If context is ambiguous or incomplete, point this out to the student
+2. Quote directly from the context when possible
+3. If information is not in the context, say: "This isn't covered in your course materials"
+4. NEVER add external knowledge, assumptions, or inferences
+5. When citing, use: "According to Source [number]..." or "The materials state..."
+6. If context is unclear or incomplete, acknowledge it explicitly
+7. Stay within the exact scope of what the context provides
 
-RESPONSE ACCURACY CHECKLIST:
-✓ Every fact comes directly from the context
+RESPONSE ACCURACY CHECKLIST - VERIFY BEFORE RESPONDING:
+✓ Every fact comes directly from the context (no external knowledge)
 ✓ Technical terms match exactly as written in context
 ✓ Numbers, dates, and specifics are accurate to the source
 ✓ Relationships between concepts are as stated in context
-✓ No external knowledge or common sense assumptions
+✓ No assumptions or common sense additions
 
 TEACHING APPROACH (DIRECT MODE):
-1. ANSWER FIRST: Provide a clear, direct answer to the student's question using the context
+1. ANSWER FIRST: Provide a clear, direct answer using ONLY the context
 2. EXPLAIN: Break down the concept with details from the source material
-3. EXAMPLES: Include relevant examples from the context if available
-4. EXTEND (optional): Add 1-2 follow-up questions to deepen understanding
-5. Maintain strict fidelity to source material
+3. CITE SOURCES: Reference which sources you're using (e.g., "Source 1 explains...")
+4. EXAMPLES: Include relevant examples ONLY if they're in the context
+5. STAY GROUNDED: If the context doesn't fully answer the question, say so
 
 RESPONSE FORMATTING:
 - Use clear paragraphs separated by double newlines
-- Use numbered lists (1. 2. 3.) for sequential steps or multiple points
-- Use bullet points (- or •) for related items or examples
+- Use numbered lists (1. 2. 3.) for sequential steps
+- Use bullet points (- or •) for related items
 - Keep paragraphs concise (2-3 sentences max)
-- Use backticks for technical terms or code: \`term\`
+- Use backticks for technical terms: \`term\`
 
 RESPONSE STRUCTURE:
-1. Direct Answer: Start with a clear answer to their question (1-2 sentences)
-2. Explanation: Provide detailed explanation from the context (2-3 paragraphs)
-3. Source Citation: Reference which sources you're using
-4. Optional Follow-up: Add 1-2 questions to encourage deeper thinking (optional)
+1. Direct Answer: Start with a clear answer from the context (1-2 sentences)
+2. Explanation: Provide detailed explanation using ONLY context (2-3 paragraphs)
+3. Source Citation: Explicitly reference which sources you used
+4. Limitations: If context doesn't fully answer, acknowledge it
 
 TONE:
 - Clear and informative
 - Warm and encouraging
 - Patient and supportive
-- Never condescending
-- Honest about limitations of available materials
+- Honest about limitations
+- Never make up information
 
-EXAMPLE RESPONSE:
-"Binary search is an efficient algorithm for finding a target value within a sorted array. According to Source 1, it works by repeatedly dividing the search interval in half.
+EXAMPLE GOOD RESPONSE:
+"According to Source 1, binary search is an efficient algorithm for finding a target value within a sorted array. The materials explain that it works by repeatedly dividing the search interval in half.
 
-Here's how it works:
+Here's how it works based on the course materials:
 1. Start with the middle element of the sorted array
 2. If the target equals the middle element, you've found it
 3. If the target is less than the middle element, search the left half
 4. If the target is greater, search the right half
 5. Repeat until the target is found or the interval is empty
 
-The materials mention that binary search has a time complexity of O(log n), making it much faster than linear search for large datasets."`;
+Source 1 mentions that binary search has a time complexity of O(log n), making it much faster than linear search for large datasets."
+
+EXAMPLE BAD RESPONSE (DON'T DO THIS):
+"Binary search is a divide-and-conquer algorithm commonly used in computer science. It's similar to how you might search for a word in a dictionary..." [This adds external knowledge not in context]`;
 
     const socraticModePrompt = `You are an expert AI tutor using the Socratic method to help students discover knowledge through guided questioning and critical thinking.
 
@@ -354,12 +349,12 @@ Remember: Your goal is to help students ${tutorMode === "guided" ? "DISCOVER" : 
           presence_penalty: 0.4,  // Encourage exploring different angles
         }
       : {
-          // Direct mode: More focused, precise
-          temperature: 0.5,
-          max_tokens: 800,
-          top_p: 0.85,
-          frequency_penalty: 0.3,
-          presence_penalty: 0.2,
+          // Direct mode: More focused, precise, accurate
+          temperature: 0.3,  // Lower for more accuracy
+          max_tokens: 1000,  // More tokens for detailed answers
+          top_p: 0.9,
+          frequency_penalty: 0.2,
+          presence_penalty: 0.1,
         };
 
     const completion = await groq.chat.completions.create({
@@ -369,6 +364,13 @@ Remember: Your goal is to help students ${tutorMode === "guided" ? "DISCOVER" : 
     });
 
     const response = completion.choices[0].message.content;
+
+    console.log("AI Response generated:", {
+      responseLength: response?.length,
+      tutorMode: tutorMode || "direct",
+      sourcesUsed: highQualityDocs.length,
+      temperature: modelParams.temperature,
+    });
 
     // Analyze response quality based on mode
     const hasQuestions = (response?.match(/\?/g) || []).length;

@@ -14,7 +14,7 @@ export interface VectorMetadata {
   tokenCount?: number;
   hasOverlap?: boolean;
   pageNumber?: number;      // Single page number
-  pageNumbers?: number[];   // Multiple pages if chunk spans pages
+  pageNumbers?: string;     // Comma-separated page numbers (e.g., "1,2,3")
 }
 
 export async function indexDocument(
@@ -47,7 +47,9 @@ export async function indexDocument(
         tokenCount: chunk.tokenCount,
         hasOverlap: chunk.hasOverlap,
         pageNumber: chunk.metadata.pageNumber,
-        pageNumbers: chunk.metadata.pageNumbers,
+        pageNumbers: chunk.metadata.pageNumbers 
+          ? chunk.metadata.pageNumbers.join(',') 
+          : undefined,
         uploadedAt: new Date().toISOString(),
       } as any,
     }));

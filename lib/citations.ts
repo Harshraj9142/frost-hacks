@@ -44,14 +44,21 @@ export function createCitation(
   result: any,
   index: number
 ): Citation {
-  const pageInfo = formatPageInfo(result.metadata.pageNumber, result.metadata.pageNumbers);
+  // Parse pageNumbers from string format if needed
+  const pageNumbers = result.metadata.pageNumbers 
+    ? (typeof result.metadata.pageNumbers === 'string' 
+        ? result.metadata.pageNumbers.split(',').map((n: string) => parseInt(n.trim()))
+        : result.metadata.pageNumbers)
+    : undefined;
+  
+  const pageInfo = formatPageInfo(result.metadata.pageNumber, pageNumbers);
   
   return {
     id: `cite-${Date.now()}-${index}`,
     fileName: result.metadata.fileName,
     fileType: result.metadata.fileType,
     pageNumber: result.metadata.pageNumber,
-    pageNumbers: result.metadata.pageNumbers,
+    pageNumbers: pageNumbers,
     chunkIndex: result.metadata.chunkIndex,
     text: truncateText(result.text, 200),
     fullText: result.text,
