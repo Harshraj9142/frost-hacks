@@ -11,12 +11,17 @@ import {
   generateCitationReport,
   type Citation,
 } from "@/lib/citations";
+import connectDB from "@/lib/mongodb";
+import StudentActivity from "@/models/StudentActivity";
+import QueryLog from "@/models/QueryLog";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
+  
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -428,6 +433,44 @@ Remember: Your goal is to help students ${tutorMode === "guided" ? "DISCOVER" : 
       },
     };
 
+    // Track student activity (async, don't block response)
+    const responseTime = Date.now() - startTime;
+    
+    if (session.user.role === "student") {
+      connectDB().then(async () => {
+        try {
+          // Get unique document filenames
+          const documentNames = [...new Set(highQualityDocs.map(doc => doc.metadata.fileName))];
+          
+          // Update student activity
+          await StudentActivity.findOneAndUpdate(
+            { studentId: session.user.id, courseId },
+            {
+              $inc: { queryCount: 1 },
+              $set: { lastActive: new Date() },
+              $addToSet: { 
+                documentsAccessed: { $each: documentNames }
+              },
+            },
+            { upsert: true }
+          );
+
+          // Log the query
+          await QueryLog.create({
+            studentId: session.user.id,
+            courseId,
+            query: message,
+            response: response || "",
+            documentsUsed: documentNames,
+            responseTime,
+            satisfied: null, // Can be updated later via feedback
+          });
+        } catch (error) {
+          console.error("Failed to track student activity:", error);
+        }
+      }).catch(err => console.error("DB connection error:", err));
+    }
+
     // Log query for analytics (async, don't wait)
     fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/query-log`, {
       method: 'POST',
@@ -440,7 +483,7 @@ Remember: Your goal is to help students ${tutorMode === "guided" ? "DISCOVER" : 
         lowRelevance: false,
         bestScore: bestScore,
         sourcesCount: sources.length,
-        responseTime: Date.now() - Date.now(), // Will be calculated on client
+        responseTime: responseTime,
         tutorMode: tutorMode || 'direct',
       }),
     }).catch(err => console.error('Failed to log query:', err));

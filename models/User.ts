@@ -6,6 +6,7 @@ export interface IUser extends Document {
   password: string;
   role: "student" | "faculty";
   avatar?: string;
+  courses?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,6 +44,10 @@ const UserSchema: Schema<IUser> = new Schema(
     avatar: {
       type: String,
       default: null,
+    },
+    courses: {
+      type: [String],
+      default: [],
     },
   },
   {
