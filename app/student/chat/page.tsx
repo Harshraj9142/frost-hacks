@@ -58,7 +58,7 @@ import {
 } from "@/lib/store";
 import { useSearchParams } from "next/navigation";
 
-// Helper function to format response text
+// Helper function to format response text with enhanced structure
 function formatResponseText(text: string) {
   // Split by double newlines for paragraphs
   const paragraphs = text.split('\n\n').filter(p => p.trim());
@@ -66,16 +66,33 @@ function formatResponseText(text: string) {
   return paragraphs.map((paragraph, idx) => {
     const trimmed = paragraph.trim();
     
+    // Check if it's a section header (## Header)
+    if (/^##\s+/.test(trimmed)) {
+      const headerText = trimmed.replace(/^##\s+/, '');
+      return (
+        <div key={idx} className="mt-4 mb-2">
+          <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+            <div className="h-1 w-1 rounded-full bg-primary" />
+            {headerText}
+          </h3>
+          <div className="h-px bg-gradient-to-r from-primary/30 to-transparent mt-1.5" />
+        </div>
+      );
+    }
+    
     // Check if it's a numbered list item
     if (/^\d+\./.test(trimmed)) {
       const items = paragraph.split('\n').filter(item => item.trim());
       return (
-        <ol key={idx} className="list-decimal list-inside space-y-2 my-3">
-          {items.map((item, i) => (
-            <li key={i} className="text-sm leading-relaxed pl-2">
-              {item.replace(/^\d+\.\s*/, '')}
-            </li>
-          ))}
+        <ol key={idx} className="list-decimal list-inside space-y-2.5 my-3 ml-1">
+          {items.map((item, i) => {
+            const content = item.replace(/^\d+\.\s*/, '');
+            return (
+              <li key={i} className="text-sm leading-relaxed pl-2 text-muted-foreground">
+                <span className="text-foreground">{formatInlineContent(content)}</span>
+              </li>
+            );
+          })}
         </ol>
       );
     }
@@ -84,12 +101,16 @@ function formatResponseText(text: string) {
     if (/^[-•*]/.test(trimmed)) {
       const items = paragraph.split('\n').filter(item => item.trim());
       return (
-        <ul key={idx} className="list-disc list-inside space-y-2 my-3">
-          {items.map((item, i) => (
-            <li key={i} className="text-sm leading-relaxed pl-2">
-              {item.replace(/^[-•*]\s*/, '')}
-            </li>
-          ))}
+        <ul key={idx} className="space-y-2.5 my-3 ml-1">
+          {items.map((item, i) => {
+            const content = item.replace(/^[-•*]\s*/, '');
+            return (
+              <li key={i} className="text-sm leading-relaxed pl-2 flex items-start gap-2">
+                <span className="text-primary mt-1.5 flex-shrink-0">•</span>
+                <span className="text-foreground">{formatInlineContent(content)}</span>
+              </li>
+            );
+          })}
         </ul>
       );
     }
@@ -99,38 +120,71 @@ function formatResponseText(text: string) {
       return (
         <div key={idx} className="my-3 p-3 rounded-lg bg-primary/5 border-l-2 border-primary">
           <p className="text-sm leading-relaxed font-medium text-primary">
-            {trimmed}
+            {formatInlineContent(trimmed)}
           </p>
         </div>
       );
     }
     
-    // Check if it contains code (backticks)
-    if (trimmed.includes('`')) {
-      const parts = trimmed.split(/(`[^`]+`)/g);
+    // Check if it's a source attribution (starts with parentheses)
+    if (/^\(Based on|^\(Source|^\(According to/.test(trimmed)) {
       return (
-        <p key={idx} className="text-sm leading-relaxed my-2">
-          {parts.map((part, i) => {
-            if (part.startsWith('`') && part.endsWith('`')) {
-              return (
-                <code key={i} className="px-1.5 py-0.5 rounded bg-muted text-primary font-mono text-xs">
-                  {part.slice(1, -1)}
-                </code>
-              );
-            }
-            return <span key={i}>{part}</span>;
-          })}
+        <p key={idx} className="text-xs text-muted-foreground italic mt-3 mb-2">
+          {trimmed}
         </p>
       );
     }
     
-    // Regular paragraph
+    // Regular paragraph with inline formatting
     return (
-      <p key={idx} className="text-sm leading-relaxed my-2">
-        {trimmed}
+      <p key={idx} className="text-sm leading-relaxed my-2 text-foreground">
+        {formatInlineContent(trimmed)}
       </p>
     );
   });
+}
+
+// Helper function to format inline content (bold, code, etc.)
+function formatInlineContent(text: string) {
+  const parts: React.ReactNode[] = [];
+  let currentIndex = 0;
+  
+  // Pattern to match backticks (code) and **bold**
+  const pattern = /(`[^`]+`|\*\*[^*]+\*\*)/g;
+  let match;
+  
+  while ((match = pattern.exec(text)) !== null) {
+    // Add text before the match
+    if (match.index > currentIndex) {
+      parts.push(text.substring(currentIndex, match.index));
+    }
+    
+    const matched = match[0];
+    if (matched.startsWith('`') && matched.endsWith('`')) {
+      // Code
+      parts.push(
+        <code key={match.index} className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono text-xs mx-0.5">
+          {matched.slice(1, -1)}
+        </code>
+      );
+    } else if (matched.startsWith('**') && matched.endsWith('**')) {
+      // Bold
+      parts.push(
+        <strong key={match.index} className="font-semibold text-foreground">
+          {matched.slice(2, -2)}
+        </strong>
+      );
+    }
+    
+    currentIndex = match.index + matched.length;
+  }
+  
+  // Add remaining text
+  if (currentIndex < text.length) {
+    parts.push(text.substring(currentIndex));
+  }
+  
+  return parts.length > 0 ? parts : text;
 }
 
 function TypingIndicator() {
