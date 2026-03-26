@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Send,
   Plus,
@@ -56,6 +56,7 @@ import {
   useUIStore,
   type ChatMessage,
 } from "@/lib/store";
+import { useSearchParams } from "next/navigation";
 
 function TypingIndicator() {
   return (
@@ -304,6 +305,7 @@ function ChatBubble({
 }
 
 export default function ChatPage() {
+  const searchParams = useSearchParams();
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -326,9 +328,48 @@ export default function ChatPage() {
   const courses = useCourseStore((s) => s.courses);
   const { focusMode, toggleFocusMode } = useUIStore();
 
+  // Handle URL parameter for document focus
+  useEffect(() => {
+    const focusDocId = searchParams.get("focus");
+    if (focusDocId) {
+      setSelectedDocumentForChat(focusDocId);
+      setChatMode("document");
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
+
+  // Fetch course documents function
+  const fetchCourseDocuments = useCallback(async () => {
+    if (!selectedCourse) {
+      console.log("No course selected, skipping fetch");
+      return;
+    }
+    
+    console.log("Fetching documents for course:", selectedCourse);
+    setLoadingDocs(true);
+    try {
+      const res = await fetch(`/api/student/documents?courseId=${selectedCourse}`);
+      console.log("API response status:", res.status);
+      
+      if (res.ok) {
+        const data = await res.json();
+        console.log("Documents fetched:", data.documents?.length || 0, "documents");
+        setCourseDocuments(data.documents || []);
+      } else {
+        const errorData = await res.json();
+        console.error("Failed to fetch documents:", res.status, errorData);
+        setCourseDocuments([]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch documents:", error);
+      setCourseDocuments([]);
+    } finally {
+      setLoadingDocs(false);
+    }
+  }, [selectedCourse]);
 
   // Fetch course documents when course is selected
   useEffect(() => {
@@ -337,7 +378,22 @@ export default function ChatPage() {
     } else {
       setCourseDocuments([]);
     }
-  }, [selectedCourse]);
+  }, [selectedCourse, fetchCourseDocuments]);
+
+  // Auto-refresh documents if any are processing
+  useEffect(() => {
+    if (!selectedCourse) return;
+    
+    const hasProcessingDocs = courseDocuments.some(doc => doc.status === "processing");
+    
+    if (hasProcessingDocs) {
+      const interval = setInterval(() => {
+        fetchCourseDocuments();
+      }, 10000); // Refresh every 10 seconds
+      
+      return () => clearInterval(interval);
+    }
+  }, [selectedCourse, courseDocuments, fetchCourseDocuments]);
 
   // Filter documents based on search and filter
   const filteredDocuments = courseDocuments.filter((doc) => {
@@ -348,26 +404,12 @@ export default function ChatPage() {
     return matchesSearch && matchesFilter;
   });
 
-  const fetchCourseDocuments = async () => {
-    if (!selectedCourse) return;
-    
-    setLoadingDocs(true);
-    try {
-      const res = await fetch(`/api/student/documents?courseId=${selectedCourse}`);
-      if (res.ok) {
-        const data = await res.json();
-        setCourseDocuments(data.documents || []);
-      } else {
-        console.error("Failed to fetch documents:", res.status);
-        setCourseDocuments([]);
-      }
-    } catch (error) {
-      console.error("Failed to fetch documents:", error);
-      setCourseDocuments([]);
-    } finally {
-      setLoadingDocs(false);
-    }
-  };
+  // Debug logging
+  useEffect(() => {
+    console.log("Course documents state:", courseDocuments.length, "documents");
+    console.log("Filtered documents:", filteredDocuments.length, "documents");
+    console.log("Selected course:", selectedCourse);
+  }, [courseDocuments, filteredDocuments, selectedCourse]);
 
   const handleCopyMessage = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -402,6 +444,8 @@ export default function ChatPage() {
   const handleSend = async () => {
     if (!input.trim() || !selectedCourse) return;
 
+    console.log("Sending message with focus:", selectedDocumentForChat);
+
     const userMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
       role: "user",
@@ -421,18 +465,23 @@ export default function ChatPage() {
         content: msg.content,
       }));
 
+      const requestBody = {
+        message: currentInput,
+        courseId: selectedCourse,
+        conversationHistory,
+        focusedDocumentId: selectedDocumentForChat,
+      };
+
+      console.log("Request body:", requestBody);
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: currentInput,
-          courseId: selectedCourse,
-          conversationHistory,
-          focusedDocumentId: selectedDocumentForChat,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
+      console.log("Response metadata:", data.metadata);
       setIsTyping(false);
 
       if (data.error) {

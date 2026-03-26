@@ -20,6 +20,13 @@ export async function POST(req: NextRequest) {
 
     const { message, courseId, conversationHistory, focusedDocumentId } = await req.json();
 
+    console.log("Chat request received:", {
+      messageLength: message?.length,
+      courseId,
+      focusedDocumentId,
+      hasFocus: !!focusedDocumentId,
+    });
+
     if (!message || !courseId) {
       return NextResponse.json(
         { error: "Message and courseId are required" },
@@ -31,11 +38,15 @@ export async function POST(req: NextRequest) {
     let relevantDocs;
     
     if (focusedDocumentId) {
+      console.log("Querying with document focus:", focusedDocumentId);
       // If focused on a specific document, only query that document
       relevantDocs = await queryVectors(message, courseId, 5, focusedDocumentId);
+      console.log("Focused query returned:", relevantDocs.length, "results");
     } else {
+      console.log("Querying all documents in course");
       // Query all documents in the course
       relevantDocs = await queryVectors(message, courseId, 5);
+      console.log("General query returned:", relevantDocs.length, "results");
     }
 
     if (relevantDocs.length === 0) {

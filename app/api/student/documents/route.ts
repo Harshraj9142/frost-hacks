@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import connectDB from "@/lib/mongodb";
 import DocumentModel from "@/models/Document";
+import CourseModel from "@/models/Course";
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,20 +18,32 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const courseId = searchParams.get("courseId");
 
-    if (!courseId) {
-      return NextResponse.json(
-        { error: "courseId is required" },
-        { status: 400 }
-      );
-    }
-
     await connectDB();
 
-    // Students can view all indexed documents for their enrolled courses
-    const documents = await DocumentModel.find({
-      courseId,
-      status: { $in: ["indexed", "processing", "failed"] }, // Show all statuses
-    })
+    // For now, get all active courses (since Course model doesn't have students field yet)
+    // TODO: Add students field to Course model for proper enrollment tracking
+    const courses = await CourseModel.find({
+      isActive: true,
+    }).select("_id");
+
+    const courseIds = courses.map((c) => c._id.toString());
+
+    if (courseIds.length === 0) {
+      return NextResponse.json({ documents: [] });
+    }
+
+    // Build query based on whether specific course is requested
+    let query: any = {
+      courseId: { $in: courseIds },
+      status: { $in: ["indexed", "processing", "failed"] },
+    };
+
+    if (courseId) {
+      query.courseId = courseId;
+    }
+
+    // Students can view all documents for active courses
+    const documents = await DocumentModel.find(query)
       .sort({ uploadedAt: -1 })
       .select("-vectorIds") // Don't expose vector IDs to students
       .lean();
