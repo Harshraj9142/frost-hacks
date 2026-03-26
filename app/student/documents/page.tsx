@@ -21,6 +21,8 @@ import {
   RefreshCw,
   MessageSquare,
   Target,
+  Lightbulb,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -135,8 +137,34 @@ export default function StudentDocumentsPage() {
   };
 
   const handleDownload = async (doc: Document) => {
-    toast.info("Download feature coming soon!");
-    // TODO: Implement actual download from storage
+    try {
+      // Create a download link for the document
+      // Note: This requires the document file to be stored and accessible
+      toast.info("Preparing download...");
+      
+      // TODO: Implement actual file download from storage
+      // For now, we'll create a placeholder
+      const response = await fetch(`/api/documents/${doc._id}/download`);
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = doc.fileName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success("Download started!");
+      } else {
+        // Fallback: Show info that download is not yet implemented
+        toast.info("Download feature coming soon! File storage integration needed.");
+      }
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Download feature requires file storage setup");
+    }
   };
 
   const handleViewDetails = (doc: Document) => {
@@ -146,7 +174,12 @@ export default function StudentDocumentsPage() {
 
   const handleChatAboutDocument = (doc: Document) => {
     // Navigate to chat with document focused
-    router.push(`/student/chat?focus=${doc._id}`);
+    router.push(`/student/chat?focus=${doc._id}&course=${doc.courseId}`);
+  };
+
+  const handleQuickChat = (doc: Document, query: string) => {
+    // Navigate to chat with pre-filled query
+    router.push(`/student/chat?focus=${doc._id}&course=${doc.courseId}&q=${encodeURIComponent(query)}`);
   };
 
   const stats = {
@@ -629,11 +662,46 @@ export default function StudentDocumentsPage() {
                 <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
                   <div className="flex items-start gap-2 mb-3">
                     <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm">
+                    <div className="text-sm flex-1">
                       <p className="font-medium text-emerald-400 mb-1">Ready to Use</p>
-                      <p className="text-muted-foreground text-xs">
+                      <p className="text-muted-foreground text-xs mb-3">
                         This document has been indexed and is ready for questions in the chat.
                       </p>
+                      
+                      {/* Quick Question Templates */}
+                      <div className="space-y-1.5 mt-3">
+                        <p className="text-xs font-medium mb-2">Quick Questions:</p>
+                        <button
+                          onClick={() => {
+                            handleQuickChat(selectedDocument, `Summarize the key points from ${selectedDocument.fileName}`);
+                            setDialogOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 text-left text-xs transition-colors"
+                        >
+                          <BookOpen className="h-3 w-3 text-primary flex-shrink-0" />
+                          <span>Summarize this document</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleQuickChat(selectedDocument, `What are the main concepts in ${selectedDocument.fileName}?`);
+                            setDialogOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 text-left text-xs transition-colors"
+                        >
+                          <Lightbulb className="h-3 w-3 text-primary flex-shrink-0" />
+                          <span>Key concepts</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleQuickChat(selectedDocument, `Give me practice questions based on ${selectedDocument.fileName}`);
+                            setDialogOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 text-left text-xs transition-colors"
+                        >
+                          <Zap className="h-3 w-3 text-primary flex-shrink-0" />
+                          <span>Practice questions</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

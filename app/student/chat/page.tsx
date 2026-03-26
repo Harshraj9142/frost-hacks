@@ -405,14 +405,25 @@ export default function ChatPage() {
   const courses = useCourseStore((s) => s.courses);
   const { focusMode, toggleFocusMode } = useUIStore();
 
-  // Handle URL parameter for document focus
+  // Handle URL parameters for document focus, course, and pre-filled query
   useEffect(() => {
     const focusDocId = searchParams.get("focus");
+    const courseParam = searchParams.get("course");
+    const queryParam = searchParams.get("q");
+    
     if (focusDocId) {
       setSelectedDocumentForChat(focusDocId);
       setChatMode("document");
     }
-  }, [searchParams]);
+    
+    if (courseParam && !selectedCourse) {
+      setSelectedCourse(courseParam);
+    }
+    
+    if (queryParam) {
+      setInput(decodeURIComponent(queryParam));
+    }
+  }, [searchParams, selectedCourse]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
