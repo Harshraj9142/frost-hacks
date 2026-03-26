@@ -1,6 +1,7 @@
 import { getPineconeIndex } from "./pinecone";
 import { generateEmbeddings } from "./embeddings";
 import { v4 as uuidv4 } from "uuid";
+import type { EnhancedChunk } from "./document-processor";
 
 export interface VectorMetadata {
   text: string;
@@ -10,10 +11,12 @@ export interface VectorMetadata {
   facultyId: string;
   chunkIndex: number;
   uploadedAt: string;
+  tokenCount?: number;
+  hasOverlap?: boolean;
 }
 
 export async function indexDocument(
-  chunks: string[],
+  chunks: EnhancedChunk[],
   metadata: {
     fileName: string;
     fileType: string;
@@ -25,19 +28,22 @@ export async function indexDocument(
     const index = await getPineconeIndex();
     
     // Generate embeddings for all chunks
-    const embeddings = await generateEmbeddings(chunks);
+    const chunkTexts = chunks.map(c => c.text);
+    const embeddings = await generateEmbeddings(chunkTexts);
     
-    // Prepare vectors for upsert
+    // Prepare vectors for upsert with enhanced metadata
     const vectors = chunks.map((chunk, i) => ({
       id: uuidv4(),
       values: embeddings[i],
       metadata: {
-        text: chunk,
+        text: chunk.text,
         fileName: metadata.fileName,
         fileType: metadata.fileType,
         courseId: metadata.courseId,
         facultyId: metadata.facultyId,
-        chunkIndex: i,
+        chunkIndex: chunk.index,
+        tokenCount: chunk.tokenCount,
+        hasOverlap: chunk.hasOverlap,
         uploadedAt: new Date().toISOString(),
       } as any,
     }));
@@ -52,6 +58,7 @@ export async function indexDocument(
       vectorIds.push(...batch.map((v) => v.id));
     }
 
+    console.log(`Indexed ${chunks.length} chunks with overlap for ${metadata.fileName}`);
     return { success: true, vectorIds };
   } catch (error) {
     console.error("Error indexing document:", error);
