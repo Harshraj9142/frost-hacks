@@ -35,17 +35,18 @@ export async function POST(req: NextRequest) {
     }
 
     // Query relevant documents from Pinecone using semantic search
+    // Retrieve more chunks for better context coverage
     let relevantDocs;
     
     if (focusedDocumentId) {
       console.log("Querying with document focus:", focusedDocumentId);
-      // If focused on a specific document, only query that document
-      relevantDocs = await queryVectors(message, courseId, 5, focusedDocumentId);
+      // If focused on a specific document, retrieve more chunks for better coverage
+      relevantDocs = await queryVectors(message, courseId, 8, focusedDocumentId);
       console.log("Focused query returned:", relevantDocs.length, "results");
     } else {
       console.log("Querying all documents in course");
-      // Query all documents in the course
-      relevantDocs = await queryVectors(message, courseId, 5);
+      // Query all documents in the course with more results
+      relevantDocs = await queryVectors(message, courseId, 10);
       console.log("General query returned:", relevantDocs.length, "results");
     }
 
@@ -62,8 +63,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Filter out low-relevance results (score < 0.65)
-    const highQualityDocs = relevantDocs.filter(doc => doc.score >= 0.65);
+    // Use a more lenient threshold for better coverage (0.60 instead of 0.65)
+    const highQualityDocs = relevantDocs.filter(doc => doc.score >= 0.60);
     
     if (highQualityDocs.length === 0) {
       // Provide helpful response even with low-quality matches
@@ -84,76 +85,141 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Build context from retrieved documents with relevance scores
-    const context = highQualityDocs
-      .map((doc, i) => `[Source ${i + 1}] (Relevance: ${(doc.score * 100).toFixed(1)}%)\n${doc.text}`)
-      .join("\n\n---\n\n");
+    // Build context from retrieved documents with better organization
+    // Group by relevance tiers for better context understanding
+    const veryHighRelevance = highQualityDocs.filter(doc => doc.score >= 0.80);
+    const highRelevance = highQualityDocs.filter(doc => doc.score >= 0.70 && doc.score < 0.80);
+    const mediumRelevance = highQualityDocs.filter(doc => doc.score >= 0.60 && doc.score < 0.70);
 
-    // Create system prompt for RAG with strict context-only enforcement
+    let context = "";
+    
+    if (veryHighRelevance.length > 0) {
+      context += "=== HIGHLY RELEVANT INFORMATION ===\n\n";
+      context += veryHighRelevance
+        .map((doc, i) => `[Source ${i + 1}] (${doc.metadata.fileName}, Relevance: ${(doc.score * 100).toFixed(1)}%)\n${doc.text}`)
+        .join("\n\n---\n\n");
+    }
+    
+    if (highRelevance.length > 0) {
+      if (context) context += "\n\n";
+      context += "=== RELEVANT SUPPORTING INFORMATION ===\n\n";
+      context += highRelevance
+        .map((doc, i) => `[Source ${veryHighRelevance.length + i + 1}] (${doc.metadata.fileName}, Relevance: ${(doc.score * 100).toFixed(1)}%)\n${doc.text}`)
+        .join("\n\n---\n\n");
+    }
+    
+    if (mediumRelevance.length > 0) {
+      if (context) context += "\n\n";
+      context += "=== ADDITIONAL CONTEXT ===\n\n";
+      context += mediumRelevance
+        .map((doc, i) => `[Source ${veryHighRelevance.length + highRelevance.length + i + 1}] (${doc.metadata.fileName}, Relevance: ${(doc.score * 100).toFixed(1)}%)\n${doc.text}`)
+        .join("\n\n---\n\n");
+    }
+
+    // Create system prompt for RAG with strict context-only enforcement and accuracy focus
     const systemPrompt = `You are an expert AI tutor using the Socratic method to help students learn deeply and critically.
 
+CRITICAL ACCURACY RULES:
+1. ONLY use information EXPLICITLY stated in the provided context below
+2. If information is not in the context, clearly state: "This specific information isn't covered in your course materials"
+3. NEVER infer, assume, or add information not present in the context
+4. When uncertain, acknowledge it: "Based on the materials, it seems..." or "The context suggests..."
+5. Cite which source you're referencing: "According to Source 1..." or "The materials mention..."
+6. If context is ambiguous or incomplete, point this out to the student
+
+RESPONSE ACCURACY CHECKLIST:
+✓ Every fact comes directly from the context
+✓ Technical terms match exactly as written in context
+✓ Numbers, dates, and specifics are accurate to the source
+✓ Relationships between concepts are as stated in context
+✓ No external knowledge or common sense assumptions
+
 CORE PRINCIPLES:
-1. ONLY use information from the provided context - never use external knowledge
-2. Guide students to discover answers through thoughtful questioning
-3. Break down complex topics into digestible pieces
-4. Encourage critical thinking and self-discovery
-5. Be encouraging, patient, and supportive
+1. Guide students to discover answers through thoughtful questioning
+2. Break down complex topics into digestible pieces
+3. Encourage critical thinking and self-discovery
+4. Be encouraging, patient, and supportive
+5. Maintain strict fidelity to source material
+
+RESPONSE FORMATTING:
+- Use clear paragraphs separated by double newlines
+- Format questions on separate lines for emphasis
+- Use numbered lists (1. 2. 3.) for sequential steps or multiple points
+- Use bullet points (- or •) for related items or examples
+- Keep paragraphs concise (2-3 sentences max)
+- Use backticks for technical terms or code: \`term\`
+- End questions with ? on their own line for emphasis
 
 RESPONSE STRUCTURE:
-- Start with acknowledgment of their question
+- Start with acknowledgment of their question (1 sentence)
+- Reference the relevant source material explicitly
 - Ask 2-3 guiding questions that lead to understanding
-- Provide hints that reference the context
-- End with encouragement to think deeper
+- Provide hints that directly quote or paraphrase the context
+- End with encouragement to think deeper (1 sentence)
 
-SOCRATIC TECHNIQUES:
-- Ask clarifying questions: "What do you already know about...?"
-- Probe assumptions: "Why do you think that is?"
-- Explore implications: "What would happen if...?"
-- Question the question: "What specifically are you trying to understand?"
-- Seek evidence: "What in the material supports that?"
+SOCRATIC TECHNIQUES (using only context):
+- Ask clarifying questions: "What do you already know about [concept from context]?"
+- Probe assumptions: "Why do you think [fact from context] is important?"
+- Explore implications: "Based on [source info], what would happen if...?"
+- Question the question: "Looking at [source], what specifically are you trying to understand?"
+- Seek evidence: "What in Source X supports that idea?"
 
 TONE:
 - Warm and encouraging
 - Intellectually curious
 - Patient and supportive
 - Never condescending
+- Honest about limitations of available materials
 - Celebrate thinking, not just correct answers
+
+EXAMPLE FORMAT:
+Great question about [topic]! Let me help you explore this based on your course materials.
+
+According to Source 1, [key fact from context]. 
+
+What do you think this means in the context of [related concept from materials]?
+
+Here are some hints from your course materials:
+- [Direct reference to Source X]
+- [Direct reference to Source Y]
+- [Direct reference to Source Z]
+
+Think about how these concepts connect. What patterns do you notice in the materials?
 
 CONTEXT FROM COURSE MATERIALS:
 ${context}
 
-CRITICAL RULES:
-- If the context doesn't contain relevant information, say: "I don't have information about that specific topic in the course materials. Let's explore what we do have - [mention related topics from context]."
-- Never make up information
-- Always tie questions back to the provided context
-- Reference specific concepts from the context in your questions
-- If partially covered, focus only on what's in the context
+CRITICAL REMINDER:
+- Stay within the bounds of the provided context
+- If asked about something not in context, redirect to what IS available
+- Accuracy over completeness - it's better to say "I don't know" than to guess
+- Your credibility depends on being truthful about what the materials contain
 
-Remember: Your goal is to help students THINK, not just give them answers. Guide them to discover knowledge themselves.`;
+Remember: Your goal is to help students THINK about the ACTUAL course materials, not to teach them from your general knowledge.`;
 
     // Build messages array with conversation history
     const messages: any[] = [
       { role: "system", content: systemPrompt },
     ];
 
-    // Add conversation history if provided (last 6 messages for better context)
+    // Add conversation history if provided (last 8 messages for better context)
     if (conversationHistory && Array.isArray(conversationHistory)) {
-      const recentHistory = conversationHistory.slice(-6);
+      const recentHistory = conversationHistory.slice(-8);
       messages.push(...recentHistory);
     }
 
     // Add current user message
     messages.push({ role: "user", content: message });
 
-    // Generate response using Groq with optimized parameters
+    // Generate response using Groq with parameters optimized for accuracy
     const completion = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages,
-      temperature: 0.8, // Higher for more creative Socratic questions
-      max_tokens: 600, // More space for thoughtful responses
-      top_p: 0.95,
-      frequency_penalty: 0.3, // Reduce repetition
-      presence_penalty: 0.2, // Encourage diverse responses
+      temperature: 0.6, // Lower temperature for more accurate, focused responses
+      max_tokens: 700, // More space for detailed, accurate responses
+      top_p: 0.9, // Slightly lower for more focused responses
+      frequency_penalty: 0.4, // Reduce repetition
+      presence_penalty: 0.3, // Encourage diverse but accurate responses
     });
 
     const response = completion.choices[0].message.content;

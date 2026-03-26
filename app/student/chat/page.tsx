@@ -58,6 +58,81 @@ import {
 } from "@/lib/store";
 import { useSearchParams } from "next/navigation";
 
+// Helper function to format response text
+function formatResponseText(text: string) {
+  // Split by double newlines for paragraphs
+  const paragraphs = text.split('\n\n').filter(p => p.trim());
+  
+  return paragraphs.map((paragraph, idx) => {
+    const trimmed = paragraph.trim();
+    
+    // Check if it's a numbered list item
+    if (/^\d+\./.test(trimmed)) {
+      const items = paragraph.split('\n').filter(item => item.trim());
+      return (
+        <ol key={idx} className="list-decimal list-inside space-y-2 my-3">
+          {items.map((item, i) => (
+            <li key={i} className="text-sm leading-relaxed pl-2">
+              {item.replace(/^\d+\.\s*/, '')}
+            </li>
+          ))}
+        </ol>
+      );
+    }
+    
+    // Check if it's a bulleted list
+    if (/^[-•*]/.test(trimmed)) {
+      const items = paragraph.split('\n').filter(item => item.trim());
+      return (
+        <ul key={idx} className="list-disc list-inside space-y-2 my-3">
+          {items.map((item, i) => (
+            <li key={i} className="text-sm leading-relaxed pl-2">
+              {item.replace(/^[-•*]\s*/, '')}
+            </li>
+          ))}
+        </ul>
+      );
+    }
+    
+    // Check if it's a question (ends with ?)
+    if (trimmed.endsWith('?')) {
+      return (
+        <div key={idx} className="my-3 p-3 rounded-lg bg-primary/5 border-l-2 border-primary">
+          <p className="text-sm leading-relaxed font-medium text-primary">
+            {trimmed}
+          </p>
+        </div>
+      );
+    }
+    
+    // Check if it contains code (backticks)
+    if (trimmed.includes('`')) {
+      const parts = trimmed.split(/(`[^`]+`)/g);
+      return (
+        <p key={idx} className="text-sm leading-relaxed my-2">
+          {parts.map((part, i) => {
+            if (part.startsWith('`') && part.endsWith('`')) {
+              return (
+                <code key={i} className="px-1.5 py-0.5 rounded bg-muted text-primary font-mono text-xs">
+                  {part.slice(1, -1)}
+                </code>
+              );
+            }
+            return <span key={i}>{part}</span>;
+          })}
+        </p>
+      );
+    }
+    
+    // Regular paragraph
+    return (
+      <p key={idx} className="text-sm leading-relaxed my-2">
+        {trimmed}
+      </p>
+    );
+  });
+}
+
 function TypingIndicator() {
   return (
     <div className="flex items-start gap-3 max-w-2xl">
@@ -164,7 +239,9 @@ function ChatBubble({
             </div>
           )}
 
-          <p className="text-sm leading-relaxed">{message.content}</p>
+          <div className="prose prose-sm max-w-none">
+            {formatResponseText(message.content)}
+          </div>
 
           {/* Expandable Answer Layers */}
           {(message.hints || message.explanation || message.example || message.practiceQuestion) && (
@@ -704,85 +781,97 @@ export default function ChatPage() {
                           </div>
                         ) : (
                           filteredDocuments.map((doc) => (
-                            <button
+                            <div
                               key={doc._id}
-                              onClick={() => {
-                                setSelectedDocument(doc);
-                                setDocumentDialogOpen(true);
-                              }}
-                              className="w-full p-2.5 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors border border-border/30 text-left group"
+                              className={`w-full p-3 rounded-lg transition-all border ${
+                                selectedDocumentForChat === doc._id
+                                  ? "bg-primary/10 border-primary/40 shadow-md"
+                                  : "bg-muted/20 hover:bg-muted/40 border-border/30"
+                              }`}
                             >
-                              <div className="flex items-start gap-2">
-                                <FileText className="h-3.5 w-3.5 text-primary flex-shrink-0 mt-0.5" />
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <p className="text-xs font-medium truncate group-hover:text-primary transition-colors flex-1">
-                                      {doc.fileName}
-                                    </p>
-                                    {selectedDocumentForChat === doc._id && (
-                                      <Pin className="h-3 w-3 text-primary flex-shrink-0" />
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <Badge
-                                      variant="outline"
-                                      className={`text-[9px] px-1.5 py-0 h-4 ${
-                                        doc.status === "indexed"
-                                          ? "text-emerald-400 border-emerald-400/30"
-                                          : doc.status === "processing"
-                                          ? "text-amber-400 border-amber-400/30"
-                                          : "text-red-400 border-red-400/30"
-                                      }`}
-                                    >
-                                      {doc.status === "indexed" && (
-                                        <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
+                              <button
+                                onClick={() => {
+                                  setSelectedDocument(doc);
+                                  setDocumentDialogOpen(true);
+                                }}
+                                className="w-full text-left"
+                              >
+                                <div className="flex items-start gap-2">
+                                  <FileText className={`h-4 w-4 flex-shrink-0 mt-0.5 ${
+                                    selectedDocumentForChat === doc._id ? "text-primary" : "text-muted-foreground"
+                                  }`} />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <p className={`text-xs font-medium truncate flex-1 ${
+                                        selectedDocumentForChat === doc._id ? "text-primary" : ""
+                                      }`}>
+                                        {doc.fileName}
+                                      </p>
+                                      {selectedDocumentForChat === doc._id && (
+                                        <Pin className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                                       )}
-                                      {doc.status === "processing" && (
-                                        <Loader2 className="h-2.5 w-2.5 mr-0.5 animate-spin" />
-                                      )}
-                                      {doc.status === "failed" && (
-                                        <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
-                                      )}
-                                      {doc.status}
-                                    </Badge>
-                                    {doc.chunkCount && (
-                                      <span className="text-[10px] text-muted-foreground">
-                                        {doc.chunkCount} chunks
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
-                                    <span>{(doc.fileSize / 1024).toFixed(1)} KB</span>
-                                    {doc.pageCount && <span>• {doc.pageCount} pages</span>}
-                                  </div>
-                                  <p className="text-[10px] text-muted-foreground mt-1">
-                                    {new Date(doc.uploadedAt).toLocaleDateString()}
-                                  </p>
-                                  
-                                  {/* Quick action buttons */}
-                                  {doc.status === "indexed" && (
-                                    <div className="flex gap-1 mt-2">
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          const isCurrentlyFocused = selectedDocumentForChat === doc._id;
-                                          setSelectedDocumentForChat(isCurrentlyFocused ? null : doc._id);
-                                          setChatMode(isCurrentlyFocused ? "all" : "document");
-                                        }}
-                                        className={`text-[10px] px-2 py-1 rounded-md transition-colors ${
-                                          selectedDocumentForChat === doc._id
-                                            ? "bg-primary/20 text-primary border border-primary/30"
-                                            : "bg-muted/50 hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-1.5">
+                                      <Badge
+                                        variant="outline"
+                                        className={`text-[9px] px-1.5 py-0 h-4 ${
+                                          doc.status === "indexed"
+                                            ? "text-emerald-400 border-emerald-400/30"
+                                            : doc.status === "processing"
+                                            ? "text-amber-400 border-amber-400/30"
+                                            : "text-red-400 border-red-400/30"
                                         }`}
                                       >
-                                        <Target className="h-3 w-3 inline mr-1" />
-                                        {selectedDocumentForChat === doc._id ? "Focused ✓" : "Focus Chat"}
-                                      </button>
+                                        {doc.status === "indexed" && (
+                                          <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
+                                        )}
+                                        {doc.status === "processing" && (
+                                          <Loader2 className="h-2.5 w-2.5 mr-0.5 animate-spin" />
+                                        )}
+                                        {doc.status === "failed" && (
+                                          <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
+                                        )}
+                                        {doc.status}
+                                      </Badge>
+                                      {doc.chunkCount > 0 && (
+                                        <span className="text-[10px] text-muted-foreground">
+                                          {doc.chunkCount} chunks
+                                        </span>
+                                      )}
                                     </div>
-                                  )}
+                                    <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
+                                      <span>{(doc.fileSize / 1024).toFixed(1)} KB</span>
+                                      {doc.pageCount && <span>• {doc.pageCount} pages</span>}
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground mt-1">
+                                      {new Date(doc.uploadedAt).toLocaleDateString()}
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
-                            </button>
+                              </button>
+                              
+                              {/* Quick action buttons */}
+                              {doc.status === "indexed" && (
+                                <div className="flex gap-2 mt-3 pt-2 border-t border-border/30">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const isCurrentlyFocused = selectedDocumentForChat === doc._id;
+                                      setSelectedDocumentForChat(isCurrentlyFocused ? null : doc._id);
+                                      setChatMode(isCurrentlyFocused ? "all" : "document");
+                                    }}
+                                    className={`flex-1 text-xs px-3 py-1.5 rounded-md font-medium transition-all flex items-center justify-center gap-1.5 ${
+                                      selectedDocumentForChat === doc._id
+                                        ? "bg-primary text-primary-foreground shadow-sm"
+                                        : "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20"
+                                    }`}
+                                  >
+                                    <Target className="h-3.5 w-3.5" />
+                                    {selectedDocumentForChat === doc._id ? "Focused ✓" : "Focus Chat"}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           ))
                         )}
                       </div>
