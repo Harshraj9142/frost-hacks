@@ -33,9 +33,9 @@ export interface ChunkingConfig {
 }
 
 const DEFAULT_CHUNKING_CONFIG: ChunkingConfig = {
-  chunkSize: 512,           // Optimal for embeddings
-  chunkOverlap: 128,        // 25% overlap to preserve context
-  minChunkSize: 100,        // Avoid tiny chunks
+  chunkSize: 600,           // Increased for better context
+  chunkOverlap: 150,        // 25% overlap to preserve context
+  minChunkSize: 150,        // Avoid tiny chunks
   respectBoundaries: true,  // Keep paragraphs together
 };
 
@@ -110,8 +110,8 @@ export async function processDocument(
     throw new Error(`Unsupported file type: ${fileType}`);
   }
 
-  // Clean the text
-  text = text.replace(/\s+/g, " ").trim();
+  // Clean and normalize the text for better accuracy
+  text = cleanText(text);
 
   // Split into chunks with overlap and page tracking
   const chunks = chunkTextWithOverlap(text, DEFAULT_CHUNKING_CONFIG, pageBreaks, pageCount);
@@ -129,14 +129,41 @@ export async function processDocument(
 }
 
 /**
+ * Clean and normalize text for better processing
+ */
+function cleanText(text: string): string {
+  // Remove excessive whitespace
+  text = text.replace(/\s+/g, " ");
+  
+  // Fix common OCR errors
+  text = text.replace(/\s+([.,!?;:])/g, "$1"); // Remove space before punctuation
+  text = text.replace(/([.,!?;:])\s*([.,!?;:])/g, "$1 "); // Fix double punctuation
+  
+  // Normalize quotes
+  text = text.replace(/[""]/g, '"');
+  text = text.replace(/['']/g, "'");
+  
+  // Remove page numbers and headers/footers (common patterns)
+  text = text.replace(/^\s*\d+\s*$/gm, ""); // Standalone page numbers
+  text = text.replace(/^Page \d+.*$/gm, ""); // "Page X" patterns
+  
+  // Remove excessive newlines but preserve paragraph breaks
+  text = text.replace(/\n{3,}/g, "\n\n");
+  
+  // Trim and return
+  return text.trim();
+}
+
+/**
  * Advanced chunking with overlap to prevent context loss
  * 
  * Strategy:
  * 1. Split by paragraphs first (respect semantic boundaries)
- * 2. Create chunks of ~512 tokens
- * 3. Add 128-token overlap between chunks (25%)
+ * 2. Create chunks of ~600 tokens
+ * 3. Add 150-token overlap between chunks (25%)
  * 4. Preserve paragraph integrity when possible
  * 5. Track metadata for each chunk including page numbers
+ * 6. Ensure chunks have complete sentences
  */
 function chunkTextWithOverlap(
   text: string,
@@ -147,33 +174,36 @@ function chunkTextWithOverlap(
   const chunks: EnhancedChunk[] = [];
   
   // Split into paragraphs first to respect semantic boundaries
-  const paragraphs = text.split(/\n\n+/).filter(p => p.trim());
+  const paragraphs = text.split(/\n\n+/).filter(p => p.trim().length > 0);
   
   let currentChunk = "";
   let currentTokens = 0;
   let chunkIndex = 0;
   let previousChunkEnd = ""; // For overlap
   let startChar = 0;
+  let paragraphCount = 0;
   
-  for (const paragraph of paragraphs) {
+  for (let i = 0; i < paragraphs.length; i++) {
+    const paragraph = paragraphs[i].trim();
     const paragraphTokens = estimateTokenCount(paragraph);
     
     // If paragraph alone exceeds chunk size, split it by sentences
     if (paragraphTokens > config.chunkSize) {
       // Save current chunk if exists
       if (currentChunk && currentTokens >= config.minChunkSize) {
-        const chunkWithOverlap = previousChunkEnd + (previousChunkEnd ? " " : "") + currentChunk;
+        const chunkWithOverlap = previousChunkEnd + (previousChunkEnd ? "\n\n" : "") + currentChunk;
         const chunkStartChar = startChar - previousChunkEnd.length;
         const pageInfo = getPageNumbers(chunkStartChar, chunkStartChar + chunkWithOverlap.length, pageBreaks, totalPages);
-        chunks.push(createEnhancedChunk(chunkWithOverlap, chunkIndex++, chunkStartChar, chunkIndex > 0, pageInfo));
+        chunks.push(createEnhancedChunk(chunkWithOverlap, chunkIndex++, chunkStartChar, chunkIndex > 0, pageInfo, paragraphCount));
         previousChunkEnd = getLastNTokens(currentChunk, config.chunkOverlap);
-        startChar += currentChunk.length;
+        startChar += currentChunk.length + 2; // +2 for \n\n
         currentChunk = "";
         currentTokens = 0;
+        paragraphCount = 0;
       }
       
       // Split large paragraph into sentences
-      const sentences = paragraph.match(/[^.!?]+[.!?]+/g) || [paragraph];
+      const sentences = paragraph.match(/[^.!?]+[.!?]+(?:\s|$)/g) || [paragraph];
       
       for (const sentence of sentences) {
         const sentenceTokens = estimateTokenCount(sentence);
@@ -183,46 +213,52 @@ function chunkTextWithOverlap(
           const chunkWithOverlap = previousChunkEnd + (previousChunkEnd ? " " : "") + currentChunk;
           const chunkStartChar = startChar - previousChunkEnd.length;
           const pageInfo = getPageNumbers(chunkStartChar, chunkStartChar + chunkWithOverlap.length, pageBreaks, totalPages);
-          chunks.push(createEnhancedChunk(chunkWithOverlap, chunkIndex++, chunkStartChar, chunkIndex > 0, pageInfo));
+          chunks.push(createEnhancedChunk(chunkWithOverlap, chunkIndex++, chunkStartChar, chunkIndex > 0, pageInfo, paragraphCount));
           
           // Prepare overlap for next chunk
           previousChunkEnd = getLastNTokens(currentChunk, config.chunkOverlap);
-          startChar += currentChunk.length;
-          currentChunk = sentence;
+          startChar += currentChunk.length + 1; // +1 for space
+          currentChunk = sentence.trim();
           currentTokens = sentenceTokens;
+          paragraphCount = 0;
         } else {
-          currentChunk += (currentChunk ? " " : "") + sentence;
+          currentChunk += (currentChunk ? " " : "") + sentence.trim();
           currentTokens += sentenceTokens;
         }
       }
+      paragraphCount++;
     } else {
       // Check if adding paragraph exceeds limit
       if (currentTokens + paragraphTokens > config.chunkSize && currentChunk) {
         // Save current chunk with overlap
-        const chunkWithOverlap = previousChunkEnd + (previousChunkEnd ? " " : "") + currentChunk;
+        const chunkWithOverlap = previousChunkEnd + (previousChunkEnd ? "\n\n" : "") + currentChunk;
         const chunkStartChar = startChar - previousChunkEnd.length;
         const pageInfo = getPageNumbers(chunkStartChar, chunkStartChar + chunkWithOverlap.length, pageBreaks, totalPages);
-        chunks.push(createEnhancedChunk(chunkWithOverlap, chunkIndex++, chunkStartChar, chunkIndex > 0, pageInfo));
+        chunks.push(createEnhancedChunk(chunkWithOverlap, chunkIndex++, chunkStartChar, chunkIndex > 0, pageInfo, paragraphCount));
         
         // Prepare overlap for next chunk
         previousChunkEnd = getLastNTokens(currentChunk, config.chunkOverlap);
-        startChar += currentChunk.length;
+        startChar += currentChunk.length + 2; // +2 for \n\n
         currentChunk = paragraph;
         currentTokens = paragraphTokens;
+        paragraphCount = 1;
       } else {
         currentChunk += (currentChunk ? "\n\n" : "") + paragraph;
         currentTokens += paragraphTokens;
+        paragraphCount++;
       }
     }
   }
   
   // Add final chunk if it meets minimum size
   if (currentChunk && currentTokens >= config.minChunkSize) {
-    const chunkWithOverlap = previousChunkEnd + (previousChunkEnd ? " " : "") + currentChunk;
+    const chunkWithOverlap = previousChunkEnd + (previousChunkEnd ? "\n\n" : "") + currentChunk;
     const chunkStartChar = startChar - previousChunkEnd.length;
     const pageInfo = getPageNumbers(chunkStartChar, chunkStartChar + chunkWithOverlap.length, pageBreaks, totalPages);
-    chunks.push(createEnhancedChunk(chunkWithOverlap, chunkIndex++, chunkStartChar, chunkIndex > 0, pageInfo));
+    chunks.push(createEnhancedChunk(chunkWithOverlap, chunkIndex++, chunkStartChar, chunkIndex > 0, pageInfo, paragraphCount));
   }
+  
+  console.log(`Created ${chunks.length} chunks with average size ${Math.round(chunks.reduce((sum, c) => sum + c.tokenCount, 0) / chunks.length)} tokens`);
   
   return chunks;
 }
@@ -270,7 +306,8 @@ function createEnhancedChunk(
   index: number,
   startChar: number,
   hasOverlap: boolean,
-  pageInfo: { pageNumber?: number; pageNumbers?: number[] }
+  pageInfo: { pageNumber?: number; pageNumbers?: number[] },
+  paragraphCount: number = 1
 ): EnhancedChunk {
   const trimmedText = text.trim();
   return {
@@ -281,7 +318,7 @@ function createEnhancedChunk(
     metadata: {
       startChar,
       endChar: startChar + trimmedText.length,
-      paragraphCount: (trimmedText.match(/\n\n/g) || []).length + 1,
+      paragraphCount,
       ...pageInfo,
     },
   };

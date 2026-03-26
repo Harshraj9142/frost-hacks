@@ -103,24 +103,50 @@ export async function queryVectors(
       }
     }
 
-    // Query Pinecone
+    // Query Pinecone with higher topK for better results
     const queryResponse = await index.query({
       vector: queryEmbedding,
-      topK,
+      topK: topK * 2, // Retrieve more, then filter
       includeMetadata: true,
       filter,
     });
 
-    // Format results
-    return queryResponse.matches.map((match) => ({
-      text: (match.metadata as any).text,
-      score: match.score || 0,
-      metadata: match.metadata as any as VectorMetadata,
-    }));
+    // Format and deduplicate results
+    const results = queryResponse.matches
+      .map((match) => ({
+        text: (match.metadata as any).text,
+        score: match.score || 0,
+        metadata: match.metadata as any as VectorMetadata,
+      }))
+      // Remove very similar chunks (likely duplicates from overlap)
+      .filter((result, index, self) => {
+        if (index === 0) return true;
+        const prevText = self[index - 1].text;
+        const similarity = calculateTextSimilarity(result.text, prevText);
+        return similarity < 0.9; // Keep if less than 90% similar
+      })
+      .slice(0, topK); // Take only topK after deduplication
+
+    console.log(`Query returned ${results.length} unique results (from ${queryResponse.matches.length} total)`);
+
+    return results;
   } catch (error) {
     console.error("Error querying vectors:", error);
     throw new Error("Failed to query vectors");
   }
+}
+
+/**
+ * Calculate text similarity (simple Jaccard similarity)
+ */
+function calculateTextSimilarity(text1: string, text2: string): number {
+  const words1 = new Set(text1.toLowerCase().split(/\s+/));
+  const words2 = new Set(text2.toLowerCase().split(/\s+/));
+  
+  const intersection = new Set([...words1].filter(x => words2.has(x)));
+  const union = new Set([...words1, ...words2]);
+  
+  return intersection.size / union.size;
 }
 
 export async function deleteDocumentVectors(
