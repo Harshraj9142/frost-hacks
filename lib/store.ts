@@ -164,7 +164,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     },
   ],
   activeSessionId: "chat-1",
-  tutorMode: "guided",
+  tutorMode: "direct",
   isTyping: false,
   setActiveSession: (id) => set({ activeSessionId: id }),
   setTutorMode: (mode) => set({ tutorMode: mode }),

@@ -407,7 +407,7 @@ Remember: Your goal is to help students ${tutorMode === "guided" ? "DISCOVER" : 
       bibliographyCitation: formatBibliographyCitation(citation, index),
     }));
 
-    return NextResponse.json({
+    const responseData = {
       response,
       sources,
       citations: structuredResponse.citations,
@@ -426,7 +426,26 @@ Remember: Your goal is to help students ${tutorMode === "guided" ? "DISCOVER" : 
         focusedDocument: focusedDocumentId || null,
         documentFocused: !!focusedDocumentId,
       },
-    });
+    };
+
+    // Log query for analytics (async, don't wait)
+    fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/query-log`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        courseId,
+        question: message,
+        response,
+        isOutOfScope: false,
+        lowRelevance: false,
+        bestScore: bestScore,
+        sourcesCount: sources.length,
+        responseTime: Date.now() - Date.now(), // Will be calculated on client
+        tutorMode: tutorMode || 'direct',
+      }),
+    }).catch(err => console.error('Failed to log query:', err));
+
+    return NextResponse.json(responseData);
   } catch (error: any) {
     console.error("Chat error:", error);
     

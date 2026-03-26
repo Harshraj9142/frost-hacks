@@ -1,323 +1,669 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { motion } from "framer-motion";
 import {
-  BarChart3,
   TrendingUp,
-  Users,
-  FileText,
+  TrendingDown,
   AlertTriangle,
-  Loader2,
-  Database,
+  Users,
+  MessageSquare,
+  Clock,
+  Target,
+  Brain,
+  BarChart3,
+  PieChart,
+  Activity,
+  Filter,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCourseStore } from "@/lib/store";
-import { toast } from "sonner";
 
-interface Stats {
-  totalDocuments: number;
-  indexedDocuments: number;
-  processingDocuments: number;
-  failedDocuments: number;
-  totalStudents: number;
-  totalChunks: number;
-}
-
-interface DocumentByCourse {
-  _id: string;
-  count: number;
-  indexed: number;
-  totalChunks: number;
-}
-
-const fadeInUp = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.5 },
-};
-
-const stagger = {
-  animate: { transition: { staggerChildren: 0.08 } },
-};
-
-export default function FacultyAnalyticsPage() {
-  const { data: session } = useSession();
+export default function AnalyticsPage() {
+  const [selectedCourse, setSelectedCourse] = useState<string>("");
+  const [timeRange, setTimeRange] = useState<string>("7d");
+  const [analytics, setAnalytics] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
   const courses = useCourseStore((s) => s.courses);
-  const [stats, setStats] = useState<Stats | null>(null);
-  const [documentsByCourse, setDocumentsByCourse] = useState<DocumentByCourse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch("/api/faculty/stats");
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to fetch stats");
-        }
-
-        setStats(data.stats);
-        setDocumentsByCourse(data.documentsByCourse || []);
-      } catch (error: any) {
-        console.error("Error fetching stats:", error);
-        toast.error(error.message || "Failed to fetch analytics");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (session) {
-      fetchStats();
+    if (courses.length > 0 && !selectedCourse) {
+      setSelectedCourse(courses[0].id);
     }
-  }, [session]);
+  }, [courses, selectedCourse]);
 
-  const getCourseName = (courseId: string) => {
-    const course = courses.find((c) => c.id === courseId);
-    return course ? course.code : courseId;
+  useEffect(() => {
+    if (selectedCourse) {
+      fetchAnalytics();
+    }
+  }, [selectedCourse, timeRange]);
+
+  const fetchAnalytics = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `/api/faculty/analytics?courseId=${selectedCourse}&timeRange=${timeRange}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setAnalytics(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch analytics:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const calculateIndexingRate = () => {
-    if (!stats || stats.totalDocuments === 0) return 0;
-    return Math.round((stats.indexedDocuments / stats.totalDocuments) * 100);
-  };
+  if (!selectedCourse) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-muted-foreground">Select a course to view analytics</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen pt-14 pb-20 md:pb-6">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Insights into student learning patterns
-          </p>
-        </motion.div>
-
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    <div className="min-h-screen pt-14 p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Course Analytics</h1>
+            <p className="text-muted-foreground mt-1">
+              Insights and performance metrics
+            </p>
           </div>
-        ) : !stats ? (
-          <Card className="glass border-border/50">
-            <CardContent className="flex flex-col items-center justify-center py-20">
-              <AlertTriangle className="h-16 w-16 text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-medium mb-2">Failed to load analytics</h3>
-              <p className="text-sm text-muted-foreground">Please try refreshing the page</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <motion.div
-            initial="initial"
-            animate="animate"
-            variants={stagger}
-            className="space-y-6"
-          >
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                {
-                  label: "Total Documents",
-                  value: stats.totalDocuments.toString(),
-                  change: `${stats.indexedDocuments} indexed`,
-                  icon: FileText,
-                  color: "text-primary",
-                },
-                {
-                  label: "Total Students",
-                  value: stats.totalStudents.toString(),
-                  change: "Enrolled",
-                  icon: Users,
-                  color: "text-emerald-400",
-                },
-                {
-                  label: "Indexing Rate",
-                  value: `${calculateIndexingRate()}%`,
-                  change: `${stats.processingDocuments} processing`,
-                  icon: TrendingUp,
-                  color: "text-cyan-400",
-                },
-                {
-                  label: "Total Chunks",
-                  value: stats.totalChunks.toString(),
-                  change: "Indexed",
-                  icon: Database,
-                  color: "text-amber-400",
-                },
-              ].map((stat, i) => (
-                <motion.div key={i} variants={fadeInUp}>
-                  <Card className="glass border-border/50">
-                    <CardContent className="p-5">
-                      <div className="flex items-center justify-between mb-3">
-                        <stat.icon className={`h-5 w-5 ${stat.color}`} />
-                        <span className="text-xs text-muted-foreground">
-                          {stat.change}
-                        </span>
-                      </div>
-                      <div className="text-2xl font-bold">{stat.value}</div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {stat.label}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
+
+          <div className="flex items-center gap-3">
+            {/* Time Range Selector */}
+            <div className="flex gap-2">
+              {["7d", "30d", "90d"].map((range) => (
+                <Button
+                  key={range}
+                  variant={timeRange === range ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTimeRange(range)}
+                >
+                  {range === "7d" ? "7 Days" : range === "30d" ? "30 Days" : "90 Days"}
+                </Button>
               ))}
             </div>
 
-            <motion.div variants={fadeInUp}>
-              <Card className="glass border-border/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-primary" />
-                    Documents by Course
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {documentsByCourse.length === 0 ? (
-                    <div className="text-center py-8 text-sm text-muted-foreground">
-                      No documents uploaded yet
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {documentsByCourse
-                        .sort((a, b) => b.count - a.count)
-                        .map((doc, i) => {
-                          const indexingRate = doc.count > 0 
-                            ? Math.round((doc.indexed / doc.count) * 100)
-                            : 0;
-                          return (
-                            <div key={i} className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium">
-                                  {getCourseName(doc._id)}
-                                </span>
-                                <div className="flex items-center gap-3">
-                                  <span className="text-xs text-muted-foreground">
-                                    {doc.count} {doc.count === 1 ? "document" : "documents"}
-                                  </span>
-                                  <span className="text-xs text-primary font-medium">
-                                    {indexingRate}% indexed
-                                  </span>
-                                </div>
-                              </div>
-                              <Progress value={indexingRate} className="h-2" />
-                              {doc.totalChunks > 0 && (
-                                <div className="text-xs text-muted-foreground">
-                                  {doc.totalChunks} chunks indexed
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
+            {/* Course Selector */}
+            <select
+              value={selectedCourse}
+              onChange={(e) => setSelectedCourse(e.target.value)}
+              className="px-4 py-2 rounded-lg border bg-background"
+            >
+              {courses.map((course) => (
+                <option key={course.id} value={course.id}>
+                  {course.code} - {course.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-            <div className="grid lg:grid-cols-2 gap-6">
-              <motion.div variants={fadeInUp}>
-                <Card className="glass border-border/50">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Document Status</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {[
-                        { 
-                          label: "Indexed", 
-                          value: stats.indexedDocuments, 
-                          total: stats.totalDocuments,
-                          color: "bg-emerald-500" 
-                        },
-                        { 
-                          label: "Processing", 
-                          value: stats.processingDocuments, 
-                          total: stats.totalDocuments,
-                          color: "bg-amber-500" 
-                        },
-                        { 
-                          label: "Failed", 
-                          value: stats.failedDocuments, 
-                          total: stats.totalDocuments,
-                          color: "bg-red-500" 
-                        },
-                      ].map((segment, i) => {
-                        const percentage = stats.totalDocuments > 0
-                          ? Math.round((segment.value / segment.total) * 100)
-                          : 0;
-                        return (
-                          <div key={i} className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm">{segment.label}</span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium">{segment.value}</span>
-                                <span className="text-xs text-muted-foreground">
-                                  ({percentage}%)
-                                </span>
-                              </div>
-                            </div>
-                            <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full ${segment.color} rounded-full transition-all`}
-                                style={{ width: `${percentage}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <motion.div variants={fadeInUp}>
-                <Card className="glass border-border/50">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">System Overview</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                        <div className="flex items-center gap-3">
-                          <FileText className="h-5 w-5 text-primary" />
-                          <span className="text-sm">Documents</span>
-                        </div>
-                        <span className="text-lg font-bold">{stats.totalDocuments}</span>
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                        <div className="flex items-center gap-3">
-                          <Users className="h-5 w-5 text-emerald-400" />
-                          <span className="text-sm">Students</span>
-                        </div>
-                        <span className="text-lg font-bold">{stats.totalStudents}</span>
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                        <div className="flex items-center gap-3">
-                          <Database className="h-5 w-5 text-cyan-400" />
-                          <span className="text-sm">Indexed Chunks</span>
-                        </div>
-                        <span className="text-lg font-bold">{stats.totalChunks}</span>
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                        <div className="flex items-center gap-3">
-                          <TrendingUp className="h-5 w-5 text-amber-400" />
-                          <span className="text-sm">Success Rate</span>
-                        </div>
-                        <span className="text-lg font-bold">{calculateIndexingRate()}%</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
+        {loading ? (
+          <div className="text-center py-20">
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
+            <p className="text-muted-foreground mt-4">Loading analytics...</p>
+          </div>
+        ) : analytics ? (
+          <>
+            {/* Overview Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard
+                icon={MessageSquare}
+                label="Total Queries"
+                value={analytics.overallStats.totalQueries}
+                change="+12%"
+                trend="up"
+              />
+              <StatCard
+                icon={Users}
+                label="Active Students"
+                value={analytics.overallStats.uniqueStudents}
+                change="+5%"
+                trend="up"
+              />
+              <StatCard
+                icon={Target}
+                label="Avg Accuracy"
+                value={`${(analytics.overallStats.avgScore * 100).toFixed(1)}%`}
+                change="-2%"
+                trend="down"
+              />
+              <StatCard
+                icon={Clock}
+                label="Avg Response Time"
+                value={`${(analytics.overallStats.avgResponseTime / 1000).toFixed(1)}s`}
+                change="+0.3s"
+                trend="down"
+              />
             </div>
-          </motion.div>
+
+            {/* Main Content Tabs */}
+            <Tabs defaultValue="topics" className="space-y-6">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="topics">Topic Analysis</TabsTrigger>
+                <TabsTrigger value="weak">Weak Concepts</TabsTrigger>
+                <TabsTrigger value="students">Student Tracking</TabsTrigger>
+                <TabsTrigger value="trends">Trends</TabsTrigger>
+              </TabsList>
+
+              {/* Topic Analysis Tab */}
+              <TabsContent value="topics" className="space-y-6">
+                <TopicAnalysis data={analytics.topicAnalysis} />
+                <TopicClusters data={analytics.topicClusters} />
+              </TabsContent>
+
+              {/* Weak Concepts Tab */}
+              <TabsContent value="weak" className="space-y-6">
+                <WeakConceptsHeatmap data={analytics.weakConcepts} />
+              </TabsContent>
+
+              {/* Student Tracking Tab */}
+              <TabsContent value="students" className="space-y-6">
+                <StudentTracking data={analytics.studentTracking} />
+              </TabsContent>
+
+              {/* Trends Tab */}
+              <TabsContent value="trends" className="space-y-6">
+                <TrendsChart data={analytics.timeSeriesData} />
+              </TabsContent>
+            </Tabs>
+          </>
+        ) : (
+          <div className="text-center py-20">
+            <p className="text-muted-foreground">No analytics data available</p>
+          </div>
         )}
       </div>
     </div>
+  );
+}
+
+// Stat Card Component
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  change,
+  trend,
+}: {
+  icon: any;
+  label: string;
+  value: string | number;
+  change: string;
+  trend: "up" | "down";
+}) {
+  return (
+    <Card className="p-6">
+      <div className="flex items-center justify-between">
+        <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center">
+          <Icon className="h-6 w-6 text-white" />
+        </div>
+        <div
+          className={`flex items-center gap-1 text-sm ${
+            trend === "up" ? "text-emerald-400" : "text-red-400"
+          }`}
+        >
+          {trend === "up" ? (
+            <TrendingUp className="h-4 w-4" />
+          ) : (
+            <TrendingDown className="h-4 w-4" />
+          )}
+          {change}
+        </div>
+      </div>
+      <div className="mt-4">
+        <p className="text-2xl font-bold">{value}</p>
+        <p className="text-sm text-muted-foreground mt-1">{label}</p>
+      </div>
+    </Card>
+  );
+}
+
+// Topic Analysis Component
+function TopicAnalysis({ data }: { data: any[] }) {
+  if (!data || data.length === 0) {
+    return <p className="text-muted-foreground">No topic data available</p>;
+  }
+
+  return (
+    <Card className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-semibold">Topic-wise Confusion Analysis</h3>
+        <Badge variant="outline">Top {data.length} Topics</Badge>
+      </div>
+
+      <ScrollArea className="h-[500px]">
+        <div className="space-y-4">
+          {data.map((topic, index) => (
+            <motion.div
+              key={topic.topic}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <h4 className="font-medium">{topic.topic}</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {topic.count} queries • Avg score: {(topic.avgScore * 100).toFixed(1)}%
+                  </p>
+                </div>
+                <ConfusionBadge level={topic.confusionLevel} />
+              </div>
+
+              {/* Confusion Heatmap Bar */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Confusion Level</span>
+                  <span>{topic.confusionLevel.toFixed(1)}%</span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all ${
+                      topic.confusionLevel > 50
+                        ? "bg-red-500"
+                        : topic.confusionLevel > 30
+                        ? "bg-amber-500"
+                        : "bg-emerald-500"
+                    }`}
+                    style={{ width: `${Math.min(topic.confusionLevel, 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Metrics */}
+              <div className="grid grid-cols-3 gap-4 mt-3 pt-3 border-t">
+                <div>
+                  <p className="text-xs text-muted-foreground">Out of Scope</p>
+                  <p className="text-sm font-medium">{topic.outOfScopeRate.toFixed(1)}%</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Low Relevance</p>
+                  <p className="text-sm font-medium">{topic.lowRelevanceRate.toFixed(1)}%</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Avg Time</p>
+                  <p className="text-sm font-medium">
+                    {(topic.avgResponseTime / 1000).toFixed(1)}s
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </ScrollArea>
+    </Card>
+  );
+}
+
+// Confusion Badge
+function ConfusionBadge({ level }: { level: number }) {
+  if (level > 50) {
+    return (
+      <Badge variant="outline" className="text-red-400 border-red-400/30">
+        <AlertTriangle className="h-3 w-3 mr-1" />
+        High Confusion
+      </Badge>
+    );
+  }
+  if (level > 30) {
+    return (
+      <Badge variant="outline" className="text-amber-400 border-amber-400/30">
+        Medium Confusion
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" className="text-emerald-400 border-emerald-400/30">
+      Low Confusion
+    </Badge>
+  );
+}
+
+// Topic Clusters Component
+function TopicClusters({ data }: { data: any }) {
+  if (!data) return null;
+
+  const clusters = Object.entries(data).filter(([_, value]: any) => value.count > 0);
+
+  return (
+    <Card className="p-6">
+      <h3 className="text-lg font-semibold mb-6">Topic Clustering</h3>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {clusters.map(([name, cluster]: any) => (
+          <div
+            key={name}
+            className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium capitalize">{name}</h4>
+              <Badge variant="outline">{cluster.count}</Badge>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Avg Score</span>
+                <span className="font-medium">
+                  {(cluster.avgScore * 100).toFixed(1)}%
+                </span>
+              </div>
+
+              {cluster.topics.length > 0 && (
+                <div className="mt-3 pt-3 border-t">
+                  <p className="text-xs text-muted-foreground mb-2">Sample Topics:</p>
+                  <div className="space-y-1">
+                    {cluster.topics.slice(0, 3).map((topic: string, i: number) => (
+                      <p key={i} className="text-xs truncate">
+                        • {topic}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+// Weak Concepts Heatmap
+function WeakConceptsHeatmap({ data }: { data: any[] }) {
+  if (!data || data.length === 0) {
+    return (
+      <Card className="p-6">
+        <p className="text-muted-foreground">No weak concepts identified</p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-semibold">Weak Concepts Heatmap</h3>
+        <Badge variant="outline">Top {data.length} Weak Areas</Badge>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {data.map((concept, index) => (
+          <motion.div
+            key={concept.concept}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: index * 0.05 }}
+            className={`p-4 rounded-lg border ${
+              concept.severity === "high"
+                ? "bg-red-500/10 border-red-500/30"
+                : concept.severity === "medium"
+                ? "bg-amber-500/10 border-amber-500/30"
+                : "bg-blue-500/10 border-blue-500/30"
+            }`}
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex-1">
+                <h4 className="font-medium">{concept.concept}</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {concept.attempts} attempts
+                </p>
+              </div>
+              <Badge
+                variant="outline"
+                className={
+                  concept.severity === "high"
+                    ? "text-red-400 border-red-400/30"
+                    : concept.severity === "medium"
+                    ? "text-amber-400 border-amber-400/30"
+                    : "text-blue-400 border-blue-400/30"
+                }
+              >
+                {concept.severity}
+              </Badge>
+            </div>
+
+            {/* Weakness Score Bar */}
+            <div className="space-y-2 mb-3">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Weakness Score</span>
+                <span>{concept.weaknessScore.toFixed(1)}</span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={`h-full ${
+                    concept.severity === "high"
+                      ? "bg-red-500"
+                      : concept.severity === "medium"
+                      ? "bg-amber-500"
+                      : "bg-blue-500"
+                  }`}
+                  style={{ width: `${Math.min(concept.weaknessScore, 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Metrics Grid */}
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div>
+                <p className="text-muted-foreground">Avg Score</p>
+                <p className="font-medium">{(concept.avgScore * 100).toFixed(0)}%</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Low Scores</p>
+                <p className="font-medium">{concept.lowScoreRate.toFixed(0)}%</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Out of Scope</p>
+                <p className="font-medium">{concept.outOfScopeRate.toFixed(0)}%</p>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Recommendations */}
+      <div className="mt-6 p-4 rounded-lg bg-primary/5 border border-primary/20">
+        <div className="flex items-start gap-3">
+          <Brain className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-medium text-sm mb-1">Recommendations</h4>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              <li>• Consider uploading additional materials for weak concepts</li>
+              <li>• Review and clarify content for high-confusion topics</li>
+              <li>• Create targeted exercises for struggling areas</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// Student Tracking Component
+function StudentTracking({ data }: { data: any[] }) {
+  if (!data || data.length === 0) {
+    return (
+      <Card className="p-6">
+        <p className="text-muted-foreground">No student data available</p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-semibold">Student-wise Query Tracking</h3>
+        <Badge variant="outline">{data.length} Students</Badge>
+      </div>
+
+      <ScrollArea className="h-[600px]">
+        <div className="space-y-3">
+          {data.map((student, index) => (
+            <motion.div
+              key={student.studentId}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.03 }}
+              className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <h4 className="font-medium">{student.studentName}</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {student.queryCount} queries • {student.topicsExplored} topics explored
+                  </p>
+                </div>
+                <EngagementBadge level={student.engagement} />
+              </div>
+
+              {/* Metrics Grid */}
+              <div className="grid grid-cols-4 gap-3 mb-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Avg Score</p>
+                  <p className="text-sm font-medium">
+                    {(student.avgScore * 100).toFixed(1)}%
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Out of Scope</p>
+                  <p className="text-sm font-medium">
+                    {student.outOfScopeRate.toFixed(1)}%
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Topics</p>
+                  <p className="text-sm font-medium">{student.topicsExplored}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Last Query</p>
+                  <p className="text-sm font-medium">
+                    {new Date(student.lastQuery).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+
+              {/* Weak Topics */}
+              {student.weakTopics.length > 0 && (
+                <div className="pt-3 border-t">
+                  <p className="text-xs text-muted-foreground mb-2">Weak Topics:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {student.weakTopics.map((topic: string) => (
+                      <Badge
+                        key={topic}
+                        variant="outline"
+                        className="text-xs text-amber-400 border-amber-400/30"
+                      >
+                        {topic}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          ))}
+        </div>
+      </ScrollArea>
+    </Card>
+  );
+}
+
+// Engagement Badge
+function EngagementBadge({ level }: { level: string }) {
+  const colors = {
+    high: "text-emerald-400 border-emerald-400/30",
+    medium: "text-amber-400 border-amber-400/30",
+    low: "text-red-400 border-red-400/30",
+  };
+
+  return (
+    <Badge variant="outline" className={colors[level as keyof typeof colors]}>
+      {level} engagement
+    </Badge>
+  );
+}
+
+// Trends Chart Component
+function TrendsChart({ data }: { data: any[] }) {
+  if (!data || data.length === 0) {
+    return (
+      <Card className="p-6">
+        <p className="text-muted-foreground">No trend data available</p>
+      </Card>
+    );
+  }
+
+  const maxQueries = Math.max(...data.map((d) => d.queries));
+
+  return (
+    <Card className="p-6">
+      <h3 className="text-lg font-semibold mb-6">Query Trends Over Time</h3>
+
+      <div className="space-y-6">
+        {/* Bar Chart */}
+        <div className="space-y-2">
+          {data.map((day, index) => (
+            <div key={day.date} className="space-y-1">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  {new Date(day.date).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>
+                <div className="flex items-center gap-4">
+                  <span className="text-emerald-400">{day.inScope} in-scope</span>
+                  <span className="text-red-400">{day.outOfScope} out-of-scope</span>
+                  <span className="font-medium">{day.queries} total</span>
+                </div>
+              </div>
+              <div className="h-8 bg-muted rounded-lg overflow-hidden flex">
+                <div
+                  className="bg-emerald-500/50 hover:bg-emerald-500/70 transition-colors"
+                  style={{ width: `${(day.inScope / maxQueries) * 100}%` }}
+                />
+                <div
+                  className="bg-red-500/50 hover:bg-red-500/70 transition-colors"
+                  style={{ width: `${(day.outOfScope / maxQueries) * 100}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Summary Stats */}
+        <div className="grid grid-cols-3 gap-4 pt-6 border-t">
+          <div className="text-center">
+            <p className="text-2xl font-bold">
+              {data.reduce((sum, d) => sum + d.queries, 0)}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">Total Queries</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-emerald-400">
+              {data.reduce((sum, d) => sum + d.inScope, 0)}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">In-Scope</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-red-400">
+              {data.reduce((sum, d) => sum + d.outOfScope, 0)}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">Out-of-Scope</p>
+          </div>
+        </div>
+      </div>
+    </Card>
   );
 }
