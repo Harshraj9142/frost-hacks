@@ -8,6 +8,7 @@ import {
   BookOpen,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   Mic,
   FileText,
   Lightbulb,
@@ -27,6 +28,13 @@ import {
   CheckCircle2,
   Loader2,
   Info,
+  MessageSquare,
+  RefreshCw,
+  Search,
+  Filter,
+  X,
+  Pin,
+  Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,6 +42,14 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   useChatStore,
   useCourseStore,
@@ -298,6 +314,13 @@ export default function ChatPage() {
   const [sources, setSources] = useState<any[]>([]);
   const [courseDocuments, setCourseDocuments] = useState<any[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
+  const [showDocuments, setShowDocuments] = useState(true);
+  const [selectedDocument, setSelectedDocument] = useState<any>(null);
+  const [documentDialogOpen, setDocumentDialogOpen] = useState(false);
+  const [documentSearch, setDocumentSearch] = useState("");
+  const [documentFilter, setDocumentFilter] = useState<"all" | "indexed" | "processing">("all");
+  const [selectedDocumentForChat, setSelectedDocumentForChat] = useState<string | null>(null);
+  const [chatMode, setChatMode] = useState<"all" | "document">("all");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { tutorMode, setTutorMode } = useChatStore();
   const courses = useCourseStore((s) => s.courses);
@@ -311,21 +334,36 @@ export default function ChatPage() {
   useEffect(() => {
     if (selectedCourse) {
       fetchCourseDocuments();
+    } else {
+      setCourseDocuments([]);
     }
   }, [selectedCourse]);
+
+  // Filter documents based on search and filter
+  const filteredDocuments = courseDocuments.filter((doc) => {
+    const matchesSearch = doc.fileName.toLowerCase().includes(documentSearch.toLowerCase());
+    const matchesFilter = 
+      documentFilter === "all" || 
+      doc.status === documentFilter;
+    return matchesSearch && matchesFilter;
+  });
 
   const fetchCourseDocuments = async () => {
     if (!selectedCourse) return;
     
     setLoadingDocs(true);
     try {
-      const res = await fetch(`/api/documents?courseId=${selectedCourse}`);
+      const res = await fetch(`/api/student/documents?courseId=${selectedCourse}`);
       if (res.ok) {
         const data = await res.json();
         setCourseDocuments(data.documents || []);
+      } else {
+        console.error("Failed to fetch documents:", res.status);
+        setCourseDocuments([]);
       }
     } catch (error) {
       console.error("Failed to fetch documents:", error);
+      setCourseDocuments([]);
     } finally {
       setLoadingDocs(false);
     }
@@ -390,6 +428,7 @@ export default function ChatPage() {
           message: currentInput,
           courseId: selectedCourse,
           conversationHistory,
+          focusedDocumentId: selectedDocumentForChat,
         }),
       });
 
@@ -479,37 +518,226 @@ export default function ChatPage() {
                 ))}
               </div>
 
-              {/* Course Documents Info */}
+              {/* Course Documents */}
               {selectedCourse && (
-                <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-border/50">
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-xs font-medium">Course Materials</span>
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2 px-1">
+                    <h3 className="text-xs text-muted-foreground font-medium">
+                      COURSE MATERIALS
+                    </h3>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5"
+                        onClick={fetchCourseDocuments}
+                        disabled={loadingDocs}
+                      >
+                        <RefreshCw className={`h-3 w-3 ${loadingDocs ? "animate-spin" : ""}`} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5"
+                        onClick={() => setShowDocuments(!showDocuments)}
+                      >
+                        {showDocuments ? (
+                          <ChevronDown className="h-3 w-3" />
+                        ) : (
+                          <ChevronRight className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
-                  {loadingDocs ? (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      Loading...
+
+                  {/* Stats Summary */}
+                  <div className="p-3 rounded-lg bg-muted/30 border border-border/50 mb-2">
+                    {loadingDocs ? (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Loading...
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Total Documents</span>
+                          <span className="font-medium">{courseDocuments.length}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Indexed</span>
+                          <span className="font-medium text-emerald-400">
+                            {courseDocuments.filter(d => d.status === "indexed").length}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Total Chunks</span>
+                          <span className="font-medium">
+                            {courseDocuments.reduce((sum, d) => sum + (d.chunkCount || 0), 0)}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Search and Filter */}
+                  {showDocuments && courseDocuments.length > 0 && (
+                    <div className="space-y-2 mb-2">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                        <input
+                          type="text"
+                          placeholder="Search documents..."
+                          value={documentSearch}
+                          onChange={(e) => setDocumentSearch(e.target.value)}
+                          className="w-full h-7 pl-7 pr-7 text-xs rounded-md bg-muted/30 border border-border/50 focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                        {documentSearch && (
+                          <button
+                            onClick={() => setDocumentSearch("")}
+                            className="absolute right-2 top-1/2 -translate-y-1/2"
+                          >
+                            <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                          </button>
+                        )}
+                      </div>
+                      
+                      <div className="flex gap-1">
+                        {["all", "indexed", "processing"].map((filter) => (
+                          <button
+                            key={filter}
+                            onClick={() => setDocumentFilter(filter as any)}
+                            className={`flex-1 text-[10px] py-1 px-2 rounded-md transition-colors ${
+                              documentFilter === filter
+                                ? "bg-primary/20 text-primary border border-primary/30"
+                                : "bg-muted/20 text-muted-foreground hover:bg-muted/40"
+                            }`}
+                          >
+                            {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Total Documents</span>
-                        <span className="font-medium">{courseDocuments.length}</span>
+                  )}
+
+                  {/* Documents List */}
+                  {showDocuments && (
+                    <ScrollArea className="h-[300px]">
+                      <div className="space-y-2">
+                        {loadingDocs ? (
+                          <div className="text-center py-8 text-xs text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
+                            Loading documents...
+                          </div>
+                        ) : filteredDocuments.length === 0 ? (
+                          <div className="text-center py-8 text-xs text-muted-foreground">
+                            <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                            {documentSearch || documentFilter !== "all" ? (
+                              <>
+                                <p>No matching documents</p>
+                                <button
+                                  onClick={() => {
+                                    setDocumentSearch("");
+                                    setDocumentFilter("all");
+                                  }}
+                                  className="text-primary text-[10px] mt-1 hover:underline"
+                                >
+                                  Clear filters
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <p>No documents yet</p>
+                                <p className="text-[10px] mt-1">
+                                  Ask your instructor to upload materials
+                                </p>
+                              </>
+                            )}
+                          </div>
+                        ) : (
+                          filteredDocuments.map((doc) => (
+                            <button
+                              key={doc._id}
+                              onClick={() => {
+                                setSelectedDocument(doc);
+                                setDocumentDialogOpen(true);
+                              }}
+                              className="w-full p-2.5 rounded-lg bg-muted/20 hover:bg-muted/40 transition-colors border border-border/30 text-left group"
+                            >
+                              <div className="flex items-start gap-2">
+                                <FileText className="h-3.5 w-3.5 text-primary flex-shrink-0 mt-0.5" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-xs font-medium truncate group-hover:text-primary transition-colors flex-1">
+                                      {doc.fileName}
+                                    </p>
+                                    {selectedDocumentForChat === doc._id && (
+                                      <Pin className="h-3 w-3 text-primary flex-shrink-0" />
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-[9px] px-1.5 py-0 h-4 ${
+                                        doc.status === "indexed"
+                                          ? "text-emerald-400 border-emerald-400/30"
+                                          : doc.status === "processing"
+                                          ? "text-amber-400 border-amber-400/30"
+                                          : "text-red-400 border-red-400/30"
+                                      }`}
+                                    >
+                                      {doc.status === "indexed" && (
+                                        <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
+                                      )}
+                                      {doc.status === "processing" && (
+                                        <Loader2 className="h-2.5 w-2.5 mr-0.5 animate-spin" />
+                                      )}
+                                      {doc.status === "failed" && (
+                                        <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
+                                      )}
+                                      {doc.status}
+                                    </Badge>
+                                    {doc.chunkCount && (
+                                      <span className="text-[10px] text-muted-foreground">
+                                        {doc.chunkCount} chunks
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
+                                    <span>{(doc.fileSize / 1024).toFixed(1)} KB</span>
+                                    {doc.pageCount && <span>• {doc.pageCount} pages</span>}
+                                  </div>
+                                  <p className="text-[10px] text-muted-foreground mt-1">
+                                    {new Date(doc.uploadedAt).toLocaleDateString()}
+                                  </p>
+                                  
+                                  {/* Quick action buttons */}
+                                  {doc.status === "indexed" && (
+                                    <div className="flex gap-1 mt-2">
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const isCurrentlyFocused = selectedDocumentForChat === doc._id;
+                                          setSelectedDocumentForChat(isCurrentlyFocused ? null : doc._id);
+                                          setChatMode(isCurrentlyFocused ? "all" : "document");
+                                        }}
+                                        className={`text-[10px] px-2 py-1 rounded-md transition-colors ${
+                                          selectedDocumentForChat === doc._id
+                                            ? "bg-primary/20 text-primary border border-primary/30"
+                                            : "bg-muted/50 hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                                        }`}
+                                      >
+                                        <Target className="h-3 w-3 inline mr-1" />
+                                        {selectedDocumentForChat === doc._id ? "Focused ✓" : "Focus Chat"}
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          ))
+                        )}
                       </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Indexed</span>
-                        <span className="font-medium text-emerald-400">
-                          {courseDocuments.filter(d => d.status === "indexed").length}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Total Chunks</span>
-                        <span className="font-medium">
-                          {courseDocuments.reduce((sum, d) => sum + (d.chunkCount || 0), 0)}
-                        </span>
-                      </div>
-                    </div>
+                    </ScrollArea>
                   )}
                 </div>
               )}
@@ -546,6 +774,26 @@ export default function ChatPage() {
               <Badge variant="outline" className="text-[10px]">
                 {courses.find(c => c.id === selectedCourse)?.code}
               </Badge>
+            )}
+            {selectedDocumentForChat && (
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[10px] bg-primary/10 border-primary/30 flex items-center gap-1">
+                  <Target className="h-3 w-3" />
+                  Focused: {courseDocuments.find(d => d._id === selectedDocumentForChat)?.fileName}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-5 w-5"
+                  onClick={() => {
+                    setSelectedDocumentForChat(null);
+                    setChatMode("all");
+                  }}
+                  title="Clear document focus"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -609,14 +857,101 @@ export default function ChatPage() {
                 </div>
                 <h2 className="text-xl font-semibold mb-2">
                   {selectedCourse 
-                    ? "What would you like to learn?"
+                    ? selectedDocumentForChat
+                      ? `Ask about ${courseDocuments.find(d => d._id === selectedDocumentForChat)?.fileName}`
+                      : "What would you like to learn?"
                     : "Select a course to start chatting"}
                 </h2>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground mb-6">
                   {selectedCourse
-                    ? "Ask anything from your course materials"
+                    ? selectedDocumentForChat
+                      ? "Your questions will focus on this specific document"
+                      : "Ask anything from your course materials"
                     : "Choose a course from the sidebar"}
                 </p>
+
+                {/* Document Focus Indicator */}
+                {selectedDocumentForChat && (
+                  <div className="max-w-md mx-auto mb-6 p-3 rounded-lg bg-primary/10 border border-primary/20">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Target className="h-4 w-4 text-primary flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="font-medium text-primary">Document Focus Active</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Searching only in: {courseDocuments.find(d => d._id === selectedDocumentForChat)?.fileName}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => {
+                          setSelectedDocumentForChat(null);
+                          setChatMode("all");
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick Actions */}
+                {selectedCourse && courseDocuments.filter(d => d.status === "indexed").length > 0 && (
+                  <div className="max-w-md mx-auto mt-8">
+                    <p className="text-xs text-muted-foreground mb-3">Quick Actions</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => setInput("What are the main topics covered in the course materials?")}
+                        className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 border border-border/50 text-left transition-colors group"
+                      >
+                        <BookOpen className="h-4 w-4 text-primary mb-2 group-hover:scale-110 transition-transform" />
+                        <p className="text-xs font-medium">Overview</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Get course summary</p>
+                      </button>
+                      
+                      <button
+                        onClick={() => setInput("What are the key concepts I should focus on?")}
+                        className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 border border-border/50 text-left transition-colors group"
+                      >
+                        <Zap className="h-4 w-4 text-amber-400 mb-2 group-hover:scale-110 transition-transform" />
+                        <p className="text-xs font-medium">Key Concepts</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Focus areas</p>
+                      </button>
+                      
+                      <button
+                        onClick={() => setInput("Can you give me practice questions?")}
+                        className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 border border-border/50 text-left transition-colors group"
+                      >
+                        <Lightbulb className="h-4 w-4 text-emerald-400 mb-2 group-hover:scale-110 transition-transform" />
+                        <p className="text-xs font-medium">Practice</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Test yourself</p>
+                      </button>
+                      
+                      <button
+                        onClick={() => setInput("Explain the most important topics step by step")}
+                        className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 border border-border/50 text-left transition-colors group"
+                      >
+                        <Sparkles className="h-4 w-4 text-cyan-400 mb-2 group-hover:scale-110 transition-transform" />
+                        <p className="text-xs font-medium">Explain</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Deep dive</p>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* No documents message */}
+                {selectedCourse && courseDocuments.filter(d => d.status === "indexed").length === 0 && (
+                  <div className="max-w-md mx-auto mt-8 p-4 rounded-lg bg-amber-400/5 border border-amber-400/20">
+                    <AlertTriangle className="h-5 w-5 text-amber-400 mx-auto mb-2" />
+                    <p className="text-sm text-amber-300 mb-1">No indexed documents yet</p>
+                    <p className="text-xs text-muted-foreground">
+                      {courseDocuments.length === 0 
+                        ? "Ask your instructor to upload course materials"
+                        : "Documents are being processed. Check back soon!"}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -637,6 +972,30 @@ export default function ChatPage() {
         {/* Input */}
         <div className="p-4 border-t border-border/50 bg-card/30">
           <div className="max-w-3xl mx-auto">
+            {/* Document Focus Banner */}
+            {selectedDocumentForChat && (
+              <div className="mb-2 p-2 rounded-lg bg-primary/5 border border-primary/10 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs">
+                  <Target className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-muted-foreground">
+                    Searching in: <span className="text-primary font-medium">{courseDocuments.find(d => d._id === selectedDocumentForChat)?.fileName}</span>
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-[10px] px-2"
+                  onClick={() => {
+                    setSelectedDocumentForChat(null);
+                    setChatMode("all");
+                  }}
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Clear Focus
+                </Button>
+              </div>
+            )}
+            
             <div className="relative flex items-end gap-2">
               <div className="flex-1 relative">
                 <Textarea
@@ -648,7 +1007,11 @@ export default function ChatPage() {
                       handleSend();
                     }
                   }}
-                  placeholder="Ask about your course materials..."
+                  placeholder={
+                    selectedDocumentForChat
+                      ? `Ask about ${courseDocuments.find(d => d._id === selectedDocumentForChat)?.fileName}...`
+                      : "Ask about your course materials..."
+                  }
                   className="min-h-[44px] max-h-[120px] resize-none pr-20 bg-muted/30 border-border/50"
                   rows={1}
                 />
@@ -763,6 +1126,182 @@ export default function ChatPage() {
           </motion.aside>
         )}
       </AnimatePresence>
+
+      {/* Document Details Dialog */}
+      <Dialog open={documentDialogOpen} onOpenChange={setDocumentDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Document Details
+            </DialogTitle>
+            <DialogDescription>
+              View information about this course material
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedDocument && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+                <h3 className="font-medium mb-3">{selectedDocument.fileName}</h3>
+                
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Status</span>
+                    <div className="mt-1">
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${
+                          selectedDocument.status === "indexed"
+                            ? "text-emerald-400 border-emerald-400/30"
+                            : selectedDocument.status === "processing"
+                            ? "text-amber-400 border-amber-400/30"
+                            : "text-red-400 border-red-400/30"
+                        }`}
+                      >
+                        {selectedDocument.status}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <span className="text-muted-foreground">File Size</span>
+                    <p className="mt-1 font-medium">
+                      {(selectedDocument.fileSize / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                  
+                  {selectedDocument.pageCount && (
+                    <div>
+                      <span className="text-muted-foreground">Pages</span>
+                      <p className="mt-1 font-medium">{selectedDocument.pageCount}</p>
+                    </div>
+                  )}
+                  
+                  {selectedDocument.chunkCount && (
+                    <div>
+                      <span className="text-muted-foreground">Chunks</span>
+                      <p className="mt-1 font-medium">{selectedDocument.chunkCount}</p>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <span className="text-muted-foreground">Uploaded</span>
+                    <p className="mt-1 font-medium">
+                      {new Date(selectedDocument.uploadedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <span className="text-muted-foreground">Course</span>
+                    <p className="mt-1 font-medium">
+                      {courses.find(c => c.id === selectedDocument.courseId)?.code}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {selectedDocument.status === "indexed" && (
+                <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
+                  <div className="flex items-start gap-2 mb-3">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-emerald-400 mb-1">Ready to Query</p>
+                      <p className="text-muted-foreground text-xs">
+                        This document has been processed and indexed. You can now ask questions about its content in the chat.
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Quick Questions */}
+                  <div className="space-y-1.5 mt-3">
+                    <p className="text-xs font-medium mb-2">Quick Questions:</p>
+                    {[
+                      { icon: BookOpen, text: "Summarize this document", query: `Summarize the key points from ${selectedDocument.fileName}` },
+                      { icon: Lightbulb, text: "Key concepts", query: `What are the main concepts in ${selectedDocument.fileName}?` },
+                      { icon: Zap, text: "Practice questions", query: `Give me practice questions based on ${selectedDocument.fileName}` },
+                    ].map((item, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          setInput(item.query);
+                          setDocumentDialogOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 text-left text-xs transition-colors"
+                      >
+                        <item.icon className="h-3 w-3 text-primary flex-shrink-0" />
+                        <span>{item.text}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedDocument.status === "processing" && (
+                <div className="p-4 rounded-lg bg-amber-400/5 border border-amber-400/10">
+                  <div className="flex items-start gap-2">
+                    <Loader2 className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5 animate-spin" />
+                    <div className="text-sm">
+                      <p className="font-medium text-amber-400 mb-1">Processing</p>
+                      <p className="text-muted-foreground text-xs">
+                        This document is being processed and will be available soon.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedDocument.status === "failed" && (
+                <div className="p-4 rounded-lg bg-red-400/5 border border-red-400/10">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm">
+                      <p className="font-medium text-red-400 mb-1">Processing Failed</p>
+                      <p className="text-muted-foreground text-xs">
+                        There was an error processing this document. Please contact your instructor.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setInput(`Tell me about the key concepts in ${selectedDocument.fileName}`);
+                    setDocumentDialogOpen(false);
+                  }}
+                  disabled={selectedDocument.status !== "indexed"}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Ask About This
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setInput(`Summarize ${selectedDocument.fileName}`);
+                    setDocumentDialogOpen(false);
+                  }}
+                  disabled={selectedDocument.status !== "indexed"}
+                >
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Summarize
+                </Button>
+              </div>
+              
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => setDocumentDialogOpen(false)}
+              >
+                Close
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

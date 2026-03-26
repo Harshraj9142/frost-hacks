@@ -39,7 +39,7 @@ export async function indexDocument(
         facultyId: metadata.facultyId,
         chunkIndex: i,
         uploadedAt: new Date().toISOString(),
-      } as VectorMetadata,
+      } as any,
     }));
 
     // Upsert vectors in batches of 100
@@ -62,7 +62,8 @@ export async function indexDocument(
 export async function queryVectors(
   query: string,
   courseId: string,
-  topK: number = 5
+  topK: number = 5,
+  focusedDocumentId?: string
 ): Promise<Array<{ text: string; score: number; metadata: VectorMetadata }>> {
   try {
     const index = await getPineconeIndex();
@@ -71,21 +72,37 @@ export async function queryVectors(
     const { generateEmbedding } = await import("./embeddings");
     const queryEmbedding = await generateEmbedding(query);
 
+    // Build filter
+    const filter: any = {
+      courseId: { $eq: courseId },
+    };
+
+    // If focused on a specific document, add document filter
+    if (focusedDocumentId) {
+      // Get document details to filter by fileName
+      const connectDB = (await import("./mongodb")).default;
+      const DocumentModel = (await import("@/models/Document")).default;
+      await connectDB();
+      
+      const document = await DocumentModel.findById(focusedDocumentId).select("fileName");
+      if (document) {
+        filter.fileName = { $eq: document.fileName };
+      }
+    }
+
     // Query Pinecone
     const queryResponse = await index.query({
       vector: queryEmbedding,
       topK,
       includeMetadata: true,
-      filter: {
-        courseId: { $eq: courseId },
-      },
+      filter,
     });
 
     // Format results
     return queryResponse.matches.map((match) => ({
-      text: (match.metadata as VectorMetadata).text,
+      text: (match.metadata as any).text,
       score: match.score || 0,
-      metadata: match.metadata as VectorMetadata,
+      metadata: match.metadata as any as VectorMetadata,
     }));
   } catch (error) {
     console.error("Error querying vectors:", error);

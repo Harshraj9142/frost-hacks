@@ -17,6 +17,10 @@ import {
   Clock,
   Award,
   Zap,
+  Bell,
+  X,
+  Check,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,6 +66,8 @@ export default function StudentDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [documentsByCourse, setDocumentsByCourse] = useState<DocumentByCourse[]>([]);
   const [recentDocuments, setRecentDocuments] = useState<RecentDocument[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -74,16 +80,26 @@ export default function StudentDashboardPage() {
     const fetchDashboard = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch("/api/student/dashboard");
-        const data = await response.json();
+        const [dashboardRes, notificationsRes] = await Promise.all([
+          fetch("/api/student/dashboard"),
+          fetch("/api/notifications?limit=5"),
+        ]);
 
-        if (!response.ok) {
-          throw new Error(data.error || "Failed to fetch dashboard");
+        const dashboardData = await dashboardRes.json();
+        const notificationsData = await notificationsRes.json();
+
+        if (!dashboardRes.ok) {
+          throw new Error(dashboardData.error || "Failed to fetch dashboard");
         }
 
-        setStats(data.stats);
-        setDocumentsByCourse(data.documentsByCourse || []);
-        setRecentDocuments(data.recentDocuments || []);
+        setStats(dashboardData.stats);
+        setDocumentsByCourse(dashboardData.documentsByCourse || []);
+        setRecentDocuments(dashboardData.recentDocuments || []);
+        
+        if (notificationsRes.ok) {
+          setNotifications(notificationsData.notifications || []);
+          setUnreadCount(notificationsData.unreadCount || 0);
+        }
       } catch (error: any) {
         console.error("Dashboard error:", error);
         toast.error(error.message || "Failed to load dashboard");
@@ -96,6 +112,28 @@ export default function StudentDashboardPage() {
       fetchDashboard();
     }
   }, [session]);
+
+  const markAsRead = async (notificationId: string) => {
+    try {
+      await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notificationIds: [notificationId] }),
+      });
+
+      setNotifications(notifications.map(n => 
+        n._id === notificationId ? { ...n, isRead: true } : n
+      ));
+      setUnreadCount(Math.max(0, unreadCount - 1));
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+    }
+  };
+
+  const dismissNotification = (notificationId: string) => {
+    setNotifications(notifications.filter(n => n._id !== notificationId));
+    markAsRead(notificationId);
+  };
 
   const getCourseName = (courseId: string) => {
     const course = courses.find((c) => c.id === courseId);
@@ -236,6 +274,96 @@ export default function StudentDashboardPage() {
                 </Card>
               </motion.div>
             </div>
+
+            {/* Notifications */}
+            {notifications.length > 0 && (
+              <motion.div variants={fadeInUp}>
+                <Card className="glass border-border/50">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Bell className="h-4 w-4 text-primary" />
+                        Notifications
+                        {unreadCount > 0 && (
+                          <Badge variant="default" className="ml-2 h-5 px-2 gradient-primary text-white border-0">
+                            {unreadCount}
+                          </Badge>
+                        )}
+                      </CardTitle>
+                      <Link href="/student/notifications">
+                        <Button variant="ghost" size="sm" className="text-xs">
+                          View All
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {notifications.map((notification) => (
+                      <motion.div
+                        key={notification._id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        className={`p-3 rounded-lg border transition-all ${
+                          notification.isRead
+                            ? "bg-muted/20 border-border/30"
+                            : "bg-primary/5 border-primary/20"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                            notification.type === "document_uploaded"
+                              ? "bg-cyan-400/10"
+                              : notification.type === "document_indexed"
+                              ? "bg-emerald-400/10"
+                              : "bg-primary/10"
+                          }`}>
+                            {notification.type === "document_uploaded" && (
+                              <Upload className="h-4 w-4 text-cyan-400" />
+                            )}
+                            {notification.type === "document_indexed" && (
+                              <Check className="h-4 w-4 text-emerald-400" />
+                            )}
+                            {notification.type === "course_created" && (
+                              <BookOpen className="h-4 w-4 text-primary" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">{notification.title}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  {notification.message}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {formatTimeAgo(notification.createdAt)}
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => dismissNotification(notification._id)}
+                                className="text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                            {!notification.isRead && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="mt-2 h-7 text-xs"
+                                onClick={() => markAsRead(notification._id)}
+                              >
+                                Mark as read
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
 
             <div className="grid lg:grid-cols-3 gap-6">
               {/* Course Materials */}

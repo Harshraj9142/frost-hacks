@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import connectDB from "@/lib/mongodb";
 import DocumentModel from "@/models/Document";
 import User from "@/models/User";
+import CourseModel from "@/models/Course";
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,13 +18,11 @@ export async function GET(req: NextRequest) {
 
     await connectDB();
 
-    // Get all courses from the store (these are predefined)
-    // In a real app, you'd fetch from a Course model
-    const courses = [
-      { id: "cs101", code: "CS 101", name: "Introduction to Computer Science", color: "#3b82f6" },
-      { id: "math201", code: "MATH 201", name: "Calculus II", color: "#8b5cf6" },
-      { id: "ml301", code: "ML 301", name: "Machine Learning Fundamentals", color: "#ec4899" },
-    ];
+    // Get courses from database
+    const courses = await CourseModel.find({
+      facultyId: session.user.id,
+      isActive: true,
+    }).lean();
 
     // Get statistics for each course
     const coursesWithStats = await Promise.all(
@@ -31,18 +30,18 @@ export async function GET(req: NextRequest) {
         // Count students enrolled in this course
         const studentCount = await User.countDocuments({
           role: "student",
-          courses: course.id,
+          courses: course._id.toString(),
         });
 
         // Count documents for this course
         const documentCount = await DocumentModel.countDocuments({
-          courseId: course.id,
+          courseId: course._id.toString(),
           facultyId: session.user.id,
         });
 
         // Count indexed documents
         const indexedCount = await DocumentModel.countDocuments({
-          courseId: course.id,
+          courseId: course._id.toString(),
           facultyId: session.user.id,
           status: "indexed",
         });
@@ -51,7 +50,7 @@ export async function GET(req: NextRequest) {
         const chunkStats = await DocumentModel.aggregate([
           {
             $match: {
-              courseId: course.id,
+              courseId: course._id.toString(),
               facultyId: session.user.id,
               status: "indexed",
             },
@@ -65,7 +64,10 @@ export async function GET(req: NextRequest) {
         ]);
 
         return {
-          ...course,
+          id: course._id.toString(),
+          code: course.code,
+          name: course.name,
+          color: course.color,
           studentCount,
           documentCount,
           indexedCount,
@@ -82,6 +84,70 @@ export async function GET(req: NextRequest) {
     console.error("Error fetching courses:", error);
     return NextResponse.json(
       { error: "Failed to fetch courses" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== "faculty") {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { code, name, color } = await req.json();
+
+    if (!code || !name) {
+      return NextResponse.json(
+        { error: "Code and name are required" },
+        { status: 400 }
+      );
+    }
+
+    await connectDB();
+
+    // Check if course code already exists for this faculty
+    const existing = await CourseModel.findOne({
+      facultyId: session.user.id,
+      code: code.trim(),
+    });
+
+    if (existing) {
+      return NextResponse.json(
+        { error: "A course with this code already exists" },
+        { status: 409 }
+      );
+    }
+
+    // Create new course
+    const course = await CourseModel.create({
+      code: code.trim(),
+      name: name.trim(),
+      color: color || "#8b5cf6",
+      facultyId: session.user.id,
+    });
+
+    return NextResponse.json({
+      course: {
+        id: course._id.toString(),
+        code: course.code,
+        name: course.name,
+        color: course.color,
+        studentCount: 0,
+        documentCount: 0,
+        indexedCount: 0,
+        totalChunks: 0,
+        instructor: session.user.name || "Faculty",
+      },
+    }, { status: 201 });
+  } catch (error: any) {
+    console.error("Error creating course:", error);
+    return NextResponse.json(
+      { error: "Failed to create course" },
       { status: 500 }
     );
   }

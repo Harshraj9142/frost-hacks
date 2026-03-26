@@ -80,43 +80,46 @@ export const useUserStore = create<UserStore>((set) => ({
 interface CourseStore {
   courses: Course[];
   selectedCourseId: string | null;
+  isLoading: boolean;
   setSelectedCourse: (id: string) => void;
   setCourses: (courses: Course[]) => void;
+  addCourse: (course: Course) => void;
+  updateCourse: (id: string, course: Course) => void;
+  removeCourse: (id: string) => void;
+  fetchCourses: () => Promise<void>;
+  setLoading: (loading: boolean) => void;
 }
 
 export const useCourseStore = create<CourseStore>((set) => ({
-  courses: [
-    {
-      id: "cs101",
-      name: "Introduction to Computer Science",
-      code: "CS 101",
-      instructor: "Dr. Sarah Mitchell",
-      studentCount: 156,
-      documentCount: 24,
-      color: "oklch(0.65 0.22 265)",
-    },
-    {
-      id: "ml301",
-      name: "Machine Learning Fundamentals",
-      code: "ML 301",
-      instructor: "Prof. James Liu",
-      studentCount: 89,
-      documentCount: 18,
-      color: "oklch(0.6 0.2 290)",
-    },
-    {
-      id: "math201",
-      name: "Linear Algebra",
-      code: "MATH 201",
-      instructor: "Dr. Emily Park",
-      studentCount: 120,
-      documentCount: 15,
-      color: "oklch(0.7 0.15 240)",
-    },
-  ],
-  selectedCourseId: "cs101",
+  courses: [],
+  selectedCourseId: null,
+  isLoading: false,
   setSelectedCourse: (id) => set({ selectedCourseId: id }),
   setCourses: (courses) => set({ courses }),
+  addCourse: (course) => set((state) => ({ courses: [...state.courses, course] })),
+  updateCourse: (id, course) => 
+    set((state) => ({
+      courses: state.courses.map((c) => (c.id === id ? course : c)),
+    })),
+  removeCourse: (id) =>
+    set((state) => ({
+      courses: state.courses.filter((c) => c.id !== id),
+    })),
+  setLoading: (loading) => set({ isLoading: loading }),
+  fetchCourses: async () => {
+    set({ isLoading: true });
+    try {
+      const response = await fetch("/api/faculty/courses");
+      if (response.ok) {
+        const data = await response.json();
+        set({ courses: data.courses || [] });
+      }
+    } catch (error) {
+      console.error("Failed to fetch courses:", error);
+    } finally {
+      set({ isLoading: false });
+    }
+  },
 }));
 
 // Chat store

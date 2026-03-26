@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { AppLayout } from "@/components/app-layout";
 import { CommandPalette } from "@/components/command-palette";
+import { CourseLoader } from "@/components/course-loader";
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -32,6 +33,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
+          <CourseLoader />
           <div className="flex min-h-screen">
             <AppLayout>{children}</AppLayout>
           </div>

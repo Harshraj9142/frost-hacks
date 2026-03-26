@@ -3,6 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import connectDB from "@/lib/mongodb";
 import DocumentModel from "@/models/Document";
+import NotificationModel from "@/models/Notification";
+import CourseModel from "@/models/Course";
+import User from "@/models/User";
 import { processDocument } from "@/lib/document-processor";
 import { indexDocument } from "@/lib/vector-store";
 
@@ -65,8 +68,42 @@ export async function POST(req: NextRequest) {
       status: "processing",
     });
 
+    // Get course details for notification
+    const course = await CourseModel.findById(courseId);
+    
+    // Create notifications for all students enrolled in this course
+    const students = await User.find({
+      role: "student",
+      courses: courseId,
+    }).select("_id");
+
+    if (students.length > 0 && course) {
+      const notifications = students.map((student) => ({
+        userId: student._id.toString(),
+        type: "document_uploaded",
+        title: "New Course Material Available",
+        message: `${session.user.name} uploaded "${file.name}" to ${course.code}`,
+        metadata: {
+          courseId,
+          courseName: course.name,
+          documentId: document._id.toString(),
+          documentName: file.name,
+          facultyName: session.user.name || "Faculty",
+        },
+      }));
+
+      await NotificationModel.insertMany(notifications);
+    }
+
     // Process file in background
-    processFileAsync(file, document._id.toString(), courseId, session.user.id);
+    processFileAsync(
+      file, 
+      document._id.toString(), 
+      courseId, 
+      session.user.id,
+      session.user.name || "Faculty",
+      course?.code || "Course"
+    );
 
     return NextResponse.json(
       {
@@ -90,7 +127,9 @@ async function processFileAsync(
   file: File,
   documentId: string,
   courseId: string,
-  facultyId: string
+  facultyId: string,
+  facultyName: string,
+  courseCode: string
 ) {
   try {
     // Convert file to buffer
@@ -117,6 +156,30 @@ async function processFileAsync(
       pageCount: processed.metadata.pageCount,
       indexedAt: new Date(),
     });
+
+    // Create "indexed" notifications for students
+    const students = await User.find({
+      role: "student",
+      courses: courseId,
+    }).select("_id");
+
+    if (students.length > 0) {
+      const notifications = students.map((student) => ({
+        userId: student._id.toString(),
+        type: "document_indexed",
+        title: "Document Ready for Learning",
+        message: `"${file.name}" from ${courseCode} is now indexed and ready to query!`,
+        metadata: {
+          courseId,
+          courseName: courseCode,
+          documentId,
+          documentName: file.name,
+          facultyName,
+        },
+      }));
+
+      await NotificationModel.insertMany(notifications);
+    }
 
     console.log(`Document ${file.name} indexed successfully`);
   } catch (error: any) {

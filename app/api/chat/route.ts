@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { message, courseId, conversationHistory } = await req.json();
+    const { message, courseId, conversationHistory, focusedDocumentId } = await req.json();
 
     if (!message || !courseId) {
       return NextResponse.json(
@@ -28,13 +28,26 @@ export async function POST(req: NextRequest) {
     }
 
     // Query relevant documents from Pinecone using semantic search
-    const relevantDocs = await queryVectors(message, courseId, 5);
+    let relevantDocs;
+    
+    if (focusedDocumentId) {
+      // If focused on a specific document, only query that document
+      relevantDocs = await queryVectors(message, courseId, 5, focusedDocumentId);
+    } else {
+      // Query all documents in the course
+      relevantDocs = await queryVectors(message, courseId, 5);
+    }
 
     if (relevantDocs.length === 0) {
+      const focusMessage = focusedDocumentId 
+        ? "I don't have information about that in the focused document. Try asking about a different topic from this document, or remove the document focus to search all course materials."
+        : "I don't have any course materials uploaded yet for this topic. Here's what you can do:\n\n1. Ask your instructor to upload relevant documents\n2. Try asking about a different topic that might be covered\n3. Rephrase your question to be more specific\n\nWhat else would you like to explore?";
+      
       return NextResponse.json({
-        response: "I don't have any course materials uploaded yet for this topic. Here's what you can do:\n\n1. Ask your instructor to upload relevant documents\n2. Try asking about a different topic that might be covered\n3. Rephrase your question to be more specific\n\nWhat else would you like to explore?",
+        response: focusMessage,
         sources: [],
         noContext: true,
+        focusedDocument: focusedDocumentId || null,
       });
     }
 
@@ -44,14 +57,19 @@ export async function POST(req: NextRequest) {
     if (highQualityDocs.length === 0) {
       // Provide helpful response even with low-quality matches
       const bestMatch = relevantDocs[0];
+      const focusNote = focusedDocumentId 
+        ? " in the focused document" 
+        : "";
+      
       return NextResponse.json({
-        response: `I found some course materials, but they don't seem closely related to your specific question. The closest topic I found is about "${bestMatch.text.substring(0, 100)}..."\n\nWould you like to:\n1. Explore this related topic?\n2. Rephrase your question?\n3. Ask about something else from the course materials?`,
+        response: `I found some course materials${focusNote}, but they don't seem closely related to your specific question. The closest topic I found is about "${bestMatch.text.substring(0, 100)}..."\n\nWould you like to:\n1. Explore this related topic?\n2. Rephrase your question?\n3. ${focusedDocumentId ? "Remove document focus and search all materials?" : "Ask about something else from the course materials?"}`,
         sources: relevantDocs.slice(0, 2).map((doc) => ({
           fileName: doc.metadata.fileName,
           text: doc.text.substring(0, 200) + "...",
           score: doc.score,
         })),
         lowRelevance: true,
+        focusedDocument: focusedDocumentId || null,
       });
     }
 
@@ -152,6 +170,8 @@ Remember: Your goal is to help students THINK, not just give them answers. Guide
         hasSocraticQuestions: hasQuestions,
         isEncouraging: hasEncouragement,
         responseLength: response?.length || 0,
+        focusedDocument: focusedDocumentId || null,
+        documentFocused: !!focusedDocumentId,
       },
     });
   } catch (error: any) {
