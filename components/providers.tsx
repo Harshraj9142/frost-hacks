@@ -10,7 +10,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
 
   useEffect(() => {
-    document.documentElement.classList.add("dark");
+    // Remove dark mode and use light mode (cream theme)
+    document.documentElement.classList.remove("dark");
   }, []);
 
   return (

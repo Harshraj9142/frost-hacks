@@ -145,7 +145,7 @@ export default function FacultyDashboardPage() {
                 value: loading ? "..." : stats.totalQueries.toString(),
                 change: `${stats.totalQueriesAllTime} all time`,
                 icon: MessageSquare,
-                color: "text-emerald-400",
+                color: "text-foreground",
                 trend: "up",
               },
               {
@@ -153,7 +153,7 @@ export default function FacultyDashboardPage() {
                 value: loading ? "..." : `${stats.engagementRate}%`,
                 change: stats.engagementRate >= 70 ? "Excellent" : stats.engagementRate >= 50 ? "Good" : "Needs attention",
                 icon: Activity,
-                color: "text-cyan-400",
+                color: "text-foreground",
                 trend: stats.engagementRate >= 50 ? "up" : "down",
               },
               {
@@ -161,7 +161,7 @@ export default function FacultyDashboardPage() {
                 value: loading ? "..." : `${(stats.avgResponseTime / 1000).toFixed(1)}s`,
                 change: stats.avgResponseTime < 2000 ? "Fast" : "Normal",
                 icon: Zap,
-                color: "text-amber-400",
+                color: "text-foreground",
                 trend: stats.avgResponseTime < 2000 ? "up" : "neutral",
               },
             ].map((stat, i) => (
@@ -172,10 +172,10 @@ export default function FacultyDashboardPage() {
                       <stat.icon className={`h-5 w-5 ${stat.color}`} />
                       <div className="flex items-center gap-1 text-xs">
                         {stat.trend === "up" && (
-                          <TrendingUp className="h-3 w-3 text-emerald-400" />
+                          <TrendingUp className="h-3 w-3 text-foreground/60" />
                         )}
                         {stat.trend === "down" && (
-                          <TrendingDown className="h-3 w-3 text-red-400" />
+                          <TrendingDown className="h-3 w-3 text-foreground/60" />
                         )}
                         <span className="text-muted-foreground">
                           {stat.change}
@@ -341,9 +341,9 @@ export default function FacultyDashboardPage() {
                       />
                     </div>
                     {stats.processingDocuments > 0 && (
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted border border-border">
                         <div className="flex items-center gap-2">
-                          <Loader2 className="h-4 w-4 text-amber-400 animate-spin" />
+                          <Loader2 className="h-4 w-4 text-foreground animate-spin" />
                           <span className="text-sm">Processing</span>
                         </div>
                         <span className="text-sm font-medium">
@@ -352,9 +352,9 @@ export default function FacultyDashboardPage() {
                       </div>
                     )}
                     {stats.failedDocuments > 0 && (
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted border border-border">
                         <div className="flex items-center gap-2">
-                          <AlertTriangle className="h-4 w-4 text-red-400" />
+                          <AlertTriangle className="h-4 w-4 text-foreground" />
                           <span className="text-sm">Failed</span>
                         </div>
                         <span className="text-sm font-medium">
@@ -420,16 +420,8 @@ export default function FacultyDashboardPage() {
                             </p>
                           </div>
                           <Badge
-                            variant={
-                              file.status === "indexed" ? "secondary" : "outline"
-                            }
-                            className={`text-xs ${
-                              file.status === "indexed"
-                                ? "text-emerald-400 border-emerald-400/30"
-                                : file.status === "processing"
-                                ? "text-amber-400 border-amber-400/30"
-                                : "text-red-400 border-red-400/30"
-                            }`}
+                            variant="outline"
+                            className="text-xs"
                           >
                             {file.status === "indexed" ? (
                               <CheckCircle2 className="h-3 w-3 mr-1" />

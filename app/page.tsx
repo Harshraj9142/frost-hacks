@@ -1,654 +1,667 @@
 "use client";
 
-import * as React from "react";
-import { useState, useEffect } from "react";
-import { motion, Variants } from "framer-motion";
-import { ArrowRight, Menu, X, Mail, FileCode, GraduationCap } from "lucide-react";
-import { Slot } from "@radix-ui/react-slot";
-import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/utils";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Menu, X } from "lucide-react";
 
-// Button Component
-const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-  {
-    variants: {
-      variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
-      },
-      size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-      size: "default",
-    },
-  }
-);
-
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
-  asChild?: boolean;
-}
-
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
-    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
-  }
-);
-Button.displayName = "Button";
-
-// AnimatedGroup Component
-type PresetType = "fade" | "slide" | "scale" | "blur" | "blur-slide" | "zoom" | "flip" | "bounce" | "rotate" | "swing";
-
-interface AnimatedGroupProps {
-  children: React.ReactNode;
-  className?: string;
-  variants?: {
-    container?: Variants;
-    item?: Variants;
-  };
-  preset?: PresetType;
-}
-
-const defaultContainerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const defaultItemVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1 },
-};
-
-const presetVariants: Record<PresetType, { container: Variants; item: Variants }> = {
-  fade: {
-    container: defaultContainerVariants,
-    item: {
-      hidden: { opacity: 0 },
-      visible: { opacity: 1 },
-    },
-  },
-  slide: {
-    container: defaultContainerVariants,
-    item: {
-      hidden: { opacity: 0, y: 20 },
-      visible: { opacity: 1, y: 0 },
-    },
-  },
-  scale: {
-    container: defaultContainerVariants,
-    item: {
-      hidden: { opacity: 0, scale: 0.8 },
-      visible: { opacity: 1, scale: 1 },
-    },
-  },
-  blur: {
-    container: defaultContainerVariants,
-    item: {
-      hidden: { opacity: 0, filter: "blur(4px)" },
-      visible: { opacity: 1, filter: "blur(0px)" },
-    },
-  },
-  "blur-slide": {
-    container: defaultContainerVariants,
-    item: {
-      hidden: { opacity: 0, filter: "blur(4px)", y: 20 },
-      visible: { opacity: 1, filter: "blur(0px)", y: 0 },
-    },
-  },
-  zoom: {
-    container: defaultContainerVariants,
-    item: {
-      hidden: { opacity: 0, scale: 0.5 },
-      visible: {
-        opacity: 1,
-        scale: 1,
-        transition: { type: "spring" as const, stiffness: 300, damping: 20 },
-      },
-    },
-  },
-  flip: {
-    container: defaultContainerVariants,
-    item: {
-      hidden: { opacity: 0, rotateX: -90 },
-      visible: {
-        opacity: 1,
-        rotateX: 0,
-        transition: { type: "spring" as const, stiffness: 300, damping: 20 },
-      },
-    },
-  },
-  bounce: {
-    container: defaultContainerVariants,
-    item: {
-      hidden: { opacity: 0, y: -50 },
-      visible: {
-        opacity: 1,
-        y: 0,
-        transition: { type: "spring" as const, stiffness: 400, damping: 10 },
-      },
-    },
-  },
-  rotate: {
-    container: defaultContainerVariants,
-    item: {
-      hidden: { opacity: 0, rotate: -180 },
-      visible: {
-        opacity: 1,
-        rotate: 0,
-        transition: { type: "spring" as const, stiffness: 200, damping: 15 },
-      },
-    },
-  },
-  swing: {
-    container: defaultContainerVariants,
-    item: {
-      hidden: { opacity: 0, rotate: -10 },
-      visible: {
-        opacity: 1,
-        rotate: 0,
-        transition: { type: "spring" as const, stiffness: 300, damping: 8 },
-      },
-    },
-  },
-};
-
-function AnimatedGroup({ children, className, variants, preset }: AnimatedGroupProps) {
-  const selectedVariants = preset
-    ? presetVariants[preset]
-    : { container: defaultContainerVariants, item: defaultItemVariants };
-  const containerVariants = variants?.container || selectedVariants.container;
-  const itemVariants = variants?.item || selectedVariants.item;
-
-  return (
-    <motion.div initial="hidden" animate="visible" variants={containerVariants} className={cn(className)}>
-      {React.Children.map(children, (child, index) => (
-        <motion.div key={index} variants={itemVariants}>
-          {child}
-        </motion.div>
-      ))}
-    </motion.div>
-  );
-}
-
-// Logo Component
-const Logo = ({ className }: { className?: string }) => {
-  return (
-    <div className={cn("flex items-center space-x-2", className)}>
-      <div className="h-9 w-9 rounded-xl gradient-primary flex items-center justify-center shadow-lg">
-        <GraduationCap className="h-5 w-5 text-white" />
-      </div>
-      <span className="font-bold text-xl tracking-tight text-white">
-        RAG Tutor
-      </span>
-    </div>
-  );
-};
-
-// Menu Items
-const menuItems = [
+// Navigation Component
+const navLinks = [
   { name: "Features", href: "#features" },
-  { name: "How it Works", href: "#how-it-works" },
-  { name: "Testimonials", href: "#testimonials" },
+  { name: "How it works", href: "#how-it-works" },
+  { name: "Developers", href: "#developers" },
+  { name: "Pricing", href: "#pricing" },
 ];
 
-// Header Component
-const HeroHeader = () => {
-  const [menuState, setMenuState] = useState(false);
+function Navigation() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      setIsScrolled(window.scrollY > 20);
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
-    <header className="absolute inset-x-0 top-0 z-50">
-      <nav data-state={menuState && "active"} className="w-full px-2 group mt-6">
-        <div
-          className={cn(
-            "mx-auto max-w-6xl px-6 transition-all duration-300 lg:px-12",
-            isScrolled && "bg-background/80 max-w-4xl rounded-2xl border border-border/50 backdrop-blur-xl lg:px-5 shadow-2xl"
-          )}
+    <header
+      className={`fixed z-50 transition-all duration-500 ${
+        isScrolled 
+          ? "top-4 left-4 right-4" 
+          : "top-0 left-0 right-0"
+      }`}
+    >
+      <nav 
+        className={`mx-auto transition-all duration-500 ${
+          isScrolled || isMobileMenuOpen
+            ? "bg-[#FFF8F0]/95 backdrop-blur-xl border border-black/10 rounded-2xl shadow-lg max-w-[1200px]"
+            : "bg-transparent max-w-[1400px]"
+        }`}
+      >
+        <div 
+          className={`flex items-center justify-between transition-all duration-500 px-6 lg:px-8 ${
+            isScrolled ? "h-14" : "h-20"
+          }`}
         >
-          <div className="relative flex flex-wrap items-center justify-between gap-6 py-3 lg:gap-0 lg:py-4">
-            <div className="flex w-full justify-between lg:w-auto">
-              <Link href="/" aria-label="home" className="flex items-center space-x-2">
-                <Logo />
-              </Link>
+          <Link href="/" className="flex items-center gap-2 group">
+            <span className={`font-display tracking-tight transition-all duration-500 text-black ${isScrolled ? "text-xl" : "text-2xl"}`}>RAG Tutor</span>
+          </Link>
 
-              <button
-                onClick={() => setMenuState(!menuState)}
-                aria-label={menuState == true ? "Close Menu" : "Open Menu"}
-                className="relative z-20 -m-2.5 -mr-4 block cursor-pointer p-2.5 lg:hidden"
+          <div className="hidden md:flex items-center gap-12">
+            {navLinks.map((link) => (
+              <Link
+                key={link.name}
+                href={link.href}
+                className="text-sm text-black/70 hover:text-black transition-colors duration-300 relative group"
               >
-                <Menu className="in-data-[state=active]:rotate-180 group-data-[state=active]:scale-0 group-data-[state=active]:opacity-0 m-auto size-6 duration-200" />
-                <X className="group-data-[state=active]:rotate-0 group-data-[state=active]:scale-100 group-data-[state=active]:opacity-100 absolute inset-0 m-auto size-6 -rotate-180 scale-0 opacity-0 duration-200" />
-              </button>
-            </div>
-
-            <div className="absolute inset-0 m-auto hidden size-fit lg:block">
-              <ul className="flex gap-8 text-sm font-medium">
-                {menuItems.map((item, index) => (
-                  <li key={index}>
-                    <a href={item.href} className="text-muted-foreground hover:text-white transition-colors duration-150">
-                      <span>{item.name}</span>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="bg-background group-data-[state=active]:block lg:group-data-[state=active]:flex mb-6 hidden w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border border-border/50 p-6 shadow-2xl md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:gap-4 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none">
-              <div className="lg:hidden">
-                <ul className="space-y-6 text-base font-medium">
-                  {menuItems.map((item, index) => (
-                    <li key={index}>
-                      <a href={item.href} className="text-muted-foreground hover:text-white transition-colors duration-150">
-                        <span>{item.name}</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit">
-                <Button asChild variant="ghost" size="sm" className="hidden lg:inline-flex text-muted-foreground hover:text-white">
-                  <Link href="/student/auth">
-                    <span>Sign In</span>
-                  </Link>
-                </Button>
-                <Button asChild size="sm" className="gradient-primary text-white border-0 shadow-lg glow-sm rounded-full px-6">
-                  <Link href="/student/auth">
-                    <span>Get Started</span>
-                  </Link>
-                </Button>
-              </div>
-            </div>
+                {link.name}
+                <span className="absolute -bottom-1 left-0 w-0 h-px bg-black transition-all duration-300 group-hover:w-full" />
+              </Link>
+            ))}
           </div>
+
+          <div className="hidden md:flex items-center gap-4">
+            <Link href="/student/auth" className={`text-black/70 hover:text-black transition-all duration-500 ${isScrolled ? "text-xs" : "text-sm"}`}>
+              Student Login
+            </Link>
+            <Link href="/faculty/auth" className={`text-black/70 hover:text-black transition-all duration-500 ${isScrolled ? "text-xs" : "text-sm"}`}>
+              Faculty Login
+            </Link>
+            <Link href="/student/auth">
+              <Button
+                size="sm"
+                className={`bg-black hover:bg-black/90 text-[#FFF8F0] rounded-full transition-all duration-500 ${isScrolled ? "px-4 h-8 text-xs" : "px-6"}`}
+              >
+                Get Started
+              </Button>
+            </Link>
+          </div>
+
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="md:hidden p-2"
+            aria-label="Toggle menu"
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
       </nav>
+      
+      <div
+        className={`md:hidden fixed inset-0 bg-[#FFF8F0] z-40 transition-all duration-500 ${
+          isMobileMenuOpen 
+            ? "opacity-100 pointer-events-auto" 
+            : "opacity-0 pointer-events-none"
+        }`}
+        style={{ top: 0 }}
+      >
+        <div className="flex flex-col h-full px-8 pt-28 pb-8">
+          <div className="flex-1 flex flex-col justify-center gap-8">
+            {navLinks.map((link, i) => (
+              <Link
+                key={link.name}
+                href={link.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`text-5xl font-display text-black hover:text-black/70 transition-all duration-500 ${
+                  isMobileMenuOpen 
+                    ? "opacity-100 translate-y-0" 
+                    : "opacity-0 translate-y-4"
+                }`}
+                style={{ transitionDelay: isMobileMenuOpen ? `${i * 75}ms` : "0ms" }}
+              >
+                {link.name}
+              </Link>
+            ))}
+          </div>
+          
+          <div className={`flex flex-col gap-4 pt-8 border-t border-black/10 transition-all duration-500 ${
+            isMobileMenuOpen 
+              ? "opacity-100 translate-y-0" 
+              : "opacity-0 translate-y-4"
+          }`}
+          style={{ transitionDelay: isMobileMenuOpen ? "300ms" : "0ms" }}
+          >
+            <Link href="/student/auth">
+              <Button 
+                variant="outline" 
+                className="w-full rounded-full h-14 text-base border-black/20 text-black hover:bg-black/5"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Student Login
+              </Button>
+            </Link>
+            <Link href="/faculty/auth">
+              <Button 
+                variant="outline" 
+                className="w-full rounded-full h-14 text-base border-black/20 text-black hover:bg-black/5"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Faculty Login
+              </Button>
+            </Link>
+            <Link href="/student/auth">
+              <Button 
+                className="w-full bg-black text-[#FFF8F0] hover:bg-black/90 rounded-full h-14 text-base"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Get Started
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
     </header>
   );
-};
+}
 
-// Custom Typewriter Text Component
-const TypewriterText = ({ text }: { text: string }) => {
-  const [displayedText, setDisplayedText] = useState("");
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isDeleting, setIsDeleting] = useState(false);
+// Animated Sphere Component
+function AnimatedSphere() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const frameRef = useRef(0);
 
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (!isDeleting) {
-        // Typing phase
-        if (currentIndex < text.length) {
-          setDisplayedText(prev => prev + text[currentIndex]);
-          setCurrentIndex(prev => prev + 1);
-        } else {
-          // Pause before deleting
-          setTimeout(() => setIsDeleting(true), 4000);
-        }
-      } else {
-        // Deleting phase
-        if (currentIndex > 0) {
-          setDisplayedText(prev => prev.slice(0, -1));
-          setCurrentIndex(prev => prev - 1);
-        } else {
-          // Pause before typing again
-          setTimeout(() => setIsDeleting(false), 500);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const chars = "░▒▓█▀▄▌▐│─┤├┴┬╭╮╰╯";
+    let time = 0;
+
+    const resize = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+    };
+
+    resize();
+    window.addEventListener("resize", resize);
+
+    const render = () => {
+      const rect = canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
+
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      const radius = Math.min(rect.width, rect.height) * 0.525;
+
+      ctx.font = "12px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      const points: { x: number; y: number; z: number; char: string }[] = [];
+
+      for (let phi = 0; phi < Math.PI * 2; phi += 0.15) {
+        for (let theta = 0; theta < Math.PI; theta += 0.15) {
+          const x = Math.sin(theta) * Math.cos(phi + time * 0.5);
+          const y = Math.sin(theta) * Math.sin(phi + time * 0.5);
+          const z = Math.cos(theta);
+
+          const rotY = time * 0.3;
+          const newX = x * Math.cos(rotY) - z * Math.sin(rotY);
+          const newZ = x * Math.sin(rotY) + z * Math.cos(rotY);
+
+          const rotX = time * 0.2;
+          const newY = y * Math.cos(rotX) - newZ * Math.sin(rotX);
+          const finalZ = y * Math.sin(rotX) + newZ * Math.cos(rotX);
+
+          const depth = (finalZ + 1) / 2;
+          const charIndex = Math.floor(depth * (chars.length - 1));
+
+          points.push({
+            x: centerX + newX * radius,
+            y: centerY + newY * radius,
+            z: finalZ,
+            char: chars[charIndex],
+          });
         }
       }
-    }, isDeleting ? 50 : 100);
 
-    return () => clearTimeout(timeout);
-  }, [currentIndex, isDeleting, text]);
+      points.sort((a, b) => a.z - b.z);
 
-  return (
-    <span className="text-5xl md:text-7xl xl:text-[6rem] font-bold text-white tracking-tight">
-      {displayedText}
-      <span className="animate-pulse text-primary ml-1">|</span>
-    </span>
-  );
-};
+      points.forEach((point) => {
+        const alpha = 0.15 + (point.z + 1) * 0.3;
+        ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+        ctx.fillText(point.char, point.x, point.y);
+      });
 
-// BackgroundGradientAnimation Component
-const BackgroundGradientAnimation = ({
-  gradientBackgroundStart = "rgb(10, 10, 10)",
-  gradientBackgroundEnd = "rgb(15, 10, 20)",
-  firstColor = "59, 130, 246",
-  secondColor = "139, 92, 246",
-  thirdColor = "168, 85, 247",
-  fourthColor = "99, 102, 241",
-  fifthColor = "192, 132, 252",
-  pointerColor = "140, 100, 255",
-  size = "80%",
-  blendingValue = "hard-light",
-  children,
-  className,
-  interactive = true,
-  containerClassName,
-}: {
-  gradientBackgroundStart?: string;
-  gradientBackgroundEnd?: string;
-  firstColor?: string;
-  secondColor?: string;
-  thirdColor?: string;
-  fourthColor?: string;
-  fifthColor?: string;
-  pointerColor?: string;
-  size?: string;
-  blendingValue?: string;
-  children?: React.ReactNode;
-  className?: string;
-  interactive?: boolean;
-  containerClassName?: string;
-}) => {
-  const interactiveRef = React.useRef<HTMLDivElement>(null);
-  const [curX, setCurX] = useState(0);
-  const [curY, setCurY] = useState(0);
-  const [tgX, setTgX] = useState(0);
-  const [tgY, setTgY] = useState(0);
+      time += 0.02;
+      frameRef.current = requestAnimationFrame(render);
+    };
+
+    render();
+
+    return () => {
+      window.removeEventListener("resize", resize);
+      cancelAnimationFrame(frameRef.current);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="w-full h-full" style={{ display: "block" }} />;
+}
+
+// Hero Section
+const words = ["learn", "understand", "master", "grow"];
+
+function HeroSection() {
+  const [isVisible, setIsVisible] = useState(false);
+  const [wordIndex, setWordIndex] = useState(0);
 
   useEffect(() => {
-    document.body.style.setProperty("--gradient-background-start", gradientBackgroundStart);
-    document.body.style.setProperty("--gradient-background-end", gradientBackgroundEnd);
-    document.body.style.setProperty("--first-color", firstColor);
-    document.body.style.setProperty("--second-color", secondColor);
-    document.body.style.setProperty("--third-color", thirdColor);
-    document.body.style.setProperty("--fourth-color", fourthColor);
-    document.body.style.setProperty("--fifth-color", fifthColor);
-    document.body.style.setProperty("--pointer-color", pointerColor);
-    document.body.style.setProperty("--size", size);
-    document.body.style.setProperty("--blending-value", blendingValue);
-  }, [gradientBackgroundStart, gradientBackgroundEnd, firstColor, secondColor, thirdColor, fourthColor, fifthColor, pointerColor, size, blendingValue]);
+    setIsVisible(true);
+  }, []);
 
   useEffect(() => {
-    function move() {
-      if (!interactiveRef.current) {
-        return;
-      }
-      setCurX(curX + (tgX - curX) / 20);
-      setCurY(curY + (tgY - curY) / 20);
-      interactiveRef.current.style.transform = `translate(${Math.round(curX)}px, ${Math.round(curY)}px)`;
-    }
-    const interval = setInterval(move, 1000 / 60);
+    const interval = setInterval(() => {
+      setWordIndex((prev) => (prev + 1) % words.length);
+    }, 2500);
     return () => clearInterval(interval);
-  }, [tgX, tgY, curX, curY]);
-
-  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (interactiveRef.current) {
-      const rect = interactiveRef.current.getBoundingClientRect();
-      setTgX(event.clientX - rect.left);
-      setTgY(event.clientY - rect.top);
-    }
-  };
-
-  const [isSafari, setIsSafari] = useState(false);
-  useEffect(() => {
-    setIsSafari(/^((?!chrome|android).)*safari/i.test(navigator.userAgent));
   }, []);
 
   return (
-    <div
-      className={cn(
-        "relative overflow-hidden bg-[linear-gradient(40deg,var(--gradient-background-start),var(--gradient-background-end))]",
-        containerClassName
-      )}
-    >
-      <svg className="hidden">
-        <defs>
-          <filter id="blurMe">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
-            <feColorMatrix
-              in="blur"
-              mode="matrix"
-              values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 18 -8"
-              result="goo"
-            />
-            <feBlend in="SourceGraphic" in2="goo" />
-          </filter>
-        </defs>
-      </svg>
-      <div className={cn("", className)}>{children}</div>
-      <div
-        className={cn(
-          "gradients-container h-full w-full blur-lg flex items-center justify-center",
-          isSafari ? "blur-2xl" : "[filter:url(#blurMe)_blur(40px)]"
-        )}
-      >
-        <div
-          className={cn(
-            `absolute [background:radial-gradient(circle_at_center,_var(--first-color)_0,_var(--first-color)_50%)_no-repeat]`,
-            `[mix-blend-mode:var(--blending-value)] w-[var(--size)] h-[var(--size)] top-[calc(50%-var(--size)/2)] left-[calc(50%-var(--size)/2)]`,
-            `[transform-origin:center_center]`,
-            `animate-pulse`,
-            `opacity-100`
-          )}
-        ></div>
-        <div
-          className={cn(
-            `absolute [background:radial-gradient(circle_at_center,_rgba(var(--second-color),_0.8)_0,_rgba(var(--second-color),_0)_50%)_no-repeat]`,
-            `[mix-blend-mode:var(--blending-value)] w-[var(--size)] h-[var(--size)] top-[calc(50%-var(--size)/2)] left-[calc(50%-var(--size)/2)]`,
-            `[transform-origin:calc(50%-400px)]`,
-            `animate-pulse`,
-            `opacity-100`
-          )}
-        ></div>
-        <div
-          className={cn(
-            `absolute [background:radial-gradient(circle_at_center,_rgba(var(--third-color),_0.8)_0,_rgba(var(--third-color),_0)_50%)_no-repeat]`,
-            `[mix-blend-mode:var(--blending-value)] w-[var(--size)] h-[var(--size)] top-[calc(50%-var(--size)/2)] left-[calc(50%-var(--size)/2)]`,
-            `[transform-origin:calc(50%+400px)]`,
-            `animate-pulse`,
-            `opacity-100`
-          )}
-        ></div>
-
-        {interactive && (
-          <div
-            ref={interactiveRef}
-            onMouseMove={handleMouseMove}
-            className={cn(
-              `absolute [background:radial-gradient(circle_at_center,_rgba(var(--pointer-color),_0.8)_0,_rgba(var(--pointer-color),_0)_50%)_no-repeat]`,
-              `[mix-blend-mode:var(--blending-value)] w-full h-full -top-1/2 -left-1/2`,
-              `opacity-70`
-            )}
-          ></div>
-        )}
+    <section className="relative min-h-screen flex flex-col justify-center overflow-hidden">
+      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[600px] h-[600px] lg:w-[800px] lg:h-[800px] opacity-40 pointer-events-none">
+        <AnimatedSphere />
       </div>
-    </div>
-  );
-};
-
-// W3DeployCTA Component
-interface W3DeployCTAProps {
-  eyebrow?: string;
-  heading?: string;
-  subheading?: string;
-  primaryButtonText?: string;
-  primaryButtonUrl?: string;
-  secondaryButtonText?: string;
-  secondaryButtonUrl?: string;
-  showSecondaryButton?: boolean;
-}
-
-const W3DeployCTA: React.FC<W3DeployCTAProps> = ({
-  eyebrow = "READY TO ACCELERATE",
-  heading = "Start your learning journey",
-  subheading = "From document upload to deep understanding — start asking questions and tracking your progress in minutes. No hallucinations. No shortcuts.",
-  primaryButtonText = "Start Learning",
-  primaryButtonUrl = "/dashboard",
-  secondaryButtonText = "Try Demo Chat",
-  secondaryButtonUrl = "/chat",
-  showSecondaryButton = true,
-}) => {
-  const [isHovered, setIsHovered] = useState(false);
-
-  return (
-    <section className="relative w-full py-20 px-4 overflow-hidden mt-32">
-      <div
-        className="absolute inset-0 opacity-[0.03] pointer-events-none"
-        style={{
-          backgroundImage: `linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-          backgroundSize: "40px 40px",
-        }}
-      />
-
-      <div className="relative max-w-5xl mx-auto">
-        <div className="relative rounded-3xl border border-border/50 bg-gradient-to-br from-card/80 to-background/40 backdrop-blur-xl md:p-16 p-8 shadow-2xl overflow-hidden min-h-[400px]">
-          
-          <BackgroundGradientAnimation
-            gradientBackgroundStart="rgb(10, 10, 10)"
-            gradientBackgroundEnd="rgb(15, 10, 20)"
-            firstColor="59, 130, 246"
-            secondColor="139, 92, 246"
-            thirdColor="168, 85, 247"
-            fourthColor="99, 102, 241"
-            fifthColor="192, 132, 252"
-            pointerColor="140, 100, 255"
-            size="100%"
-            blendingValue="screen"
-            className="absolute inset-0 opacity-30 z-0"
-            interactive={true}
+      
+      <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={`h-${i}`}
+            className="absolute h-px bg-black/20"
+            style={{
+              top: `${12.5 * (i + 1)}%`,
+              left: 0,
+              right: 0,
+            }}
           />
-
-          <div className="relative z-10 flex flex-col items-center text-center space-y-8 mt-4">
-            <div className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary backdrop-blur-sm shadow-lg">
-              <span className="flex h-2 w-2 rounded-full bg-primary mr-2 animate-pulse"></span>
-              {eyebrow}
-            </div>
-
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white max-w-3xl drop-shadow-md">
-              {heading}
-            </h2>
-
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl drop-shadow-sm">
-              {subheading}
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 pt-4 w-full sm:w-auto">
-              <Button
-                asChild
-                size="lg"
-                className="group relative overflow-hidden bg-white text-black hover:bg-zinc-200 transition-all duration-300 h-14 px-8 text-base shadow-xl rounded-full"
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
-              >
-                <Link href={primaryButtonUrl}>
-                  <span className="relative z-10 flex items-center gap-2 font-semibold">
-                    {primaryButtonText}
-                    <ArrowRight
-                      className={cn(
-                        "w-5 h-5 transition-transform duration-300",
-                        isHovered ? "translate-x-1" : ""
-                      )}
-                    />
-                  </span>
-                </Link>
-              </Button>
-
-              {showSecondaryButton && (
-                <Button
-                  asChild
-                  variant="outline"
-                  size="lg"
-                  className="rounded-full border-white/20 bg-white/5 text-white hover:bg-white/10 backdrop-blur-sm transition-all duration-300 h-14 px-8 text-base shadow-xl"
+        ))}
+        {[...Array(12)].map((_, i) => (
+          <div
+            key={`v-${i}`}
+            className="absolute w-px bg-black/20"
+            style={{
+              left: `${8.33 * (i + 1)}%`,
+              top: 0,
+              bottom: 0,
+            }}
+          />
+        ))}
+      </div>
+      
+      <div className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-12 py-32 lg:py-40">
+        <div 
+          className={`mb-8 transition-all duration-700 ${
+            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          }`}
+        >
+          <span className="inline-flex items-center gap-3 text-sm font-mono text-black/60">
+            <span className="w-8 h-px bg-black/30" />
+            AI-powered learning that teaches, not solves
+          </span>
+        </div>
+        
+        <div className="mb-12">
+          <h1 
+            className={`text-[clamp(2.5rem,8vw,6rem)] font-display leading-[1.1] tracking-tight text-black transition-all duration-1000 ${
+              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+            }`}
+          >
+            <span className="block">Your AI tutor</span>
+            <span className="block">that helps you</span>
+            <span className="block">
+              <span className="relative inline-block">
+                <span 
+                  key={wordIndex}
+                  className="inline-flex"
                 >
-                  <Link href={secondaryButtonUrl}>{secondaryButtonText}</Link>
-                </Button>
-              )}
-            </div>
+                  {words[wordIndex].split("").map((char, i) => (
+                    <span
+                      key={`${wordIndex}-${i}`}
+                      className="inline-block animate-char-in"
+                      style={{
+                        animationDelay: `${i * 50}ms`,
+                      }}
+                    >
+                      {char}
+                    </span>
+                  ))}
+                </span>
+                <span className="absolute -bottom-1 left-0 right-0 h-2 bg-black/10" />
+              </span>
+            </span>
+          </h1>
+        </div>
+        
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-24 items-end">
+          <p 
+            className={`text-xl lg:text-2xl text-black/70 leading-relaxed max-w-xl transition-all duration-700 delay-200 ${
+              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+            }`}
+          >
+            Context-aware AI tutoring with Socratic questioning. 
+            Course-restricted knowledge backed by citations from your materials.
+          </p>
+          
+          <div 
+            className={`flex flex-col sm:flex-row items-start gap-4 transition-all duration-700 delay-300 ${
+              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+            }`}
+          >
+            <Link href="/student/auth">
+              <Button 
+                size="lg" 
+                className="bg-black hover:bg-black/90 text-[#FFF8F0] px-8 h-14 text-base rounded-full group"
+              >
+                Start learning
+                <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+              </Button>
+            </Link>
+            <Link href="/faculty/auth">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="h-14 px-8 text-base rounded-full border-black/20 text-black hover:bg-black/5"
+              >
+                For educators
+              </Button>
+            </Link>
           </div>
+        </div>
+        
+      </div>
+      
+      <div 
+        className={`absolute bottom-24 left-0 right-0 transition-all duration-700 delay-500 ${
+          isVisible ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        <div className="flex gap-16 marquee whitespace-nowrap">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="flex gap-16">
+              {[
+                { value: "95%", label: "student engagement", company: "VERIFIED" },
+                { value: "3x", label: "faster learning", company: "MEASURED" },
+                { value: "100%", label: "citation-backed", company: "GUARANTEED" },
+                { value: "24/7", label: "AI tutor access", company: "ALWAYS ON" },
+              ].map((stat) => (
+                <div key={`${stat.company}-${i}`} className="flex items-baseline gap-4">
+                  <span className="text-4xl lg:text-5xl font-display text-black">{stat.value}</span>
+                  <span className="text-sm text-black/70">
+                    {stat.label}
+                    <span className="block font-mono text-xs mt-1">{stat.company}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
       </div>
     </section>
   );
-};
+}
 
-export default function LandingPage() {
+// Features Section - Simplified for brevity
+function FeaturesSection() {
+  const [isVisible, setIsVisible] = useState(false);
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setIsVisible(true);
+      },
+      { threshold: 0.1 }
+    );
+
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const features = [
+    {
+      number: "01",
+      title: "Socratic Questioning",
+      description: "Our AI guides you to discover answers through thoughtful questions, helping you truly understand concepts rather than just memorizing solutions.",
+    },
+    {
+      number: "02",
+      title: "Citation-Backed Responses",
+      description: "Every answer is grounded in your course materials with direct citations, ensuring accuracy and helping you reference the right sources.",
+    },
+    {
+      number: "03",
+      title: "Progress Tracking",
+      description: "Monitor your learning journey with detailed analytics, daily streaks, and personalized insights that keep you motivated and on track.",
+    },
+    {
+      number: "04",
+      title: "Course-Restricted Knowledge",
+      description: "AI responses are strictly limited to your uploaded course materials, preventing off-topic distractions and maintaining academic integrity.",
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-background relative flex flex-col pt-24 font-sans">
-      <HeroHeader />
-
-      <main className="flex-1 flex flex-col justify-center relative z-10 w-full overflow-hidden">
-        {/* Animated Background Mesh */}
-        <div className="fixed inset-0 gradient-mesh -z-10 opacity-30" />
-        <div className="fixed inset-0 -z-10">
-          <motion.div
-            animate={{
-              x: [0, 50, 0],
-              y: [0, 30, 0],
-            }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-primary/10 blur-[100px]"
-          />
-          <motion.div
-            animate={{
-              x: [0, -40, 0],
-              y: [0, -50, 0],
-            }}
-            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-            className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-blue-500/10 blur-[100px]"
-          />
+    <section
+      id="features"
+      ref={sectionRef}
+      className="relative py-24 lg:py-32"
+    >
+      <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
+        <div className="mb-16 lg:mb-24">
+          <span className="inline-flex items-center gap-3 text-sm font-mono text-black/60 mb-6">
+            <span className="w-8 h-px bg-black/30" />
+            Capabilities
+          </span>
+          <h2
+            className={`text-4xl lg:text-6xl font-display tracking-tight text-black transition-all duration-700 ${
+              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+            }`}
+          >
+            Teaching, not solving.
+            <br />
+            <span className="text-black/60">Learning that lasts.</span>
+          </h2>
         </div>
 
-        <AnimatedGroup preset="slide" className="text-center space-y-8 max-w-5xl mx-auto px-6 mt-16 md:mt-24 mb-16 relative z-20">
-          <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-5 py-2 text-sm font-medium text-primary backdrop-blur-md shadow-xl">
-            <span className="flex h-2 w-2 rounded-full bg-blue-400 mr-2 animate-pulse glow-sm"></span>
-            Powered by Retrieval-Augmented Generation
+        <div>
+          {features.map((feature, index) => (
+            <div
+              key={feature.number}
+              className={`group relative transition-all duration-700 ${
+                isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+              }`}
+              style={{ transitionDelay: `${index * 100}ms` }}
+            >
+              <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 py-12 lg:py-20 border-b border-black/10">
+                <div className="shrink-0">
+                  <span className="font-mono text-sm text-black/60">{feature.number}</span>
+                </div>
+                
+                <div className="flex-1">
+                  <h3 className="text-3xl lg:text-4xl font-display text-black mb-4 group-hover:translate-x-2 transition-transform duration-500">
+                    {feature.title}
+                  </h3>
+                  <p className="text-lg text-black/70 leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// CTA Section
+function CtaSection() {
+  const [isVisible, setIsVisible] = useState(false);
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setIsVisible(true);
+      },
+      { threshold: 0.2 }
+    );
+
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <section ref={sectionRef} className="relative py-24 lg:py-32 overflow-hidden">
+      <div className="max-w-[1400px] mx-auto px-6 lg:px-12">
+        <div
+          className={`relative border border-black transition-all duration-1000 ${
+            isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          }`}
+        >
+          <div className="relative z-10 px-8 lg:px-16 py-16 lg:py-24">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
+              <div className="flex-1">
+                <h2 className="text-4xl lg:text-7xl font-display tracking-tight text-black mb-8 leading-[0.95]">
+                  Ready to transform
+                  <br />
+                  your learning?
+                </h2>
+
+                <p className="text-xl text-black/70 mb-12 leading-relaxed max-w-xl">
+                  Join students and educators using RAG Tutor to make learning more effective, 
+                  engaging, and personalized.
+                </p>
+
+                <div className="flex flex-col sm:flex-row items-start gap-4">
+                  <Link href="/student/auth">
+                    <Button
+                      size="lg"
+                      className="bg-black hover:bg-black/90 text-[#FFF8F0] px-8 h-14 text-base rounded-full group"
+                    >
+                      Start learning now
+                      <ArrowRight className="w-4 h-4 ml-2 transition-transform group-hover:translate-x-1" />
+                    </Button>
+                  </Link>
+                  <Link href="/faculty/auth">
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      className="h-14 px-8 text-base rounded-full border-black/20 text-black hover:bg-black/5"
+                    >
+                      I'm an educator
+                    </Button>
+                  </Link>
+                </div>
+
+                <p className="text-sm text-black/60 mt-8 font-mono">
+                  Free to get started • No credit card required
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div className="h-40 md:h-48 flex items-center justify-center">
-            <TypewriterText text="RAG Tutor" />
-          </div>
+          <div className="absolute top-0 right-0 w-32 h-32 border-b border-l border-black/20" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 border-t border-r border-black/20" />
+        </div>
+      </div>
+    </section>
+  );
+}
 
-          <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed mt-4 drop-shadow-sm">
-            Your AI Tutor That Teaches, Not Solves. Context-aware, course-restricted, and strictly backed by citations from your uploaded materials.
+// Footer Section
+function FooterSection() {
+  const footerLinks = {
+    Product: [
+      { name: "Features", href: "#features" },
+      { name: "How it works", href: "#how-it-works" },
+      { name: "Pricing", href: "#pricing" },
+    ],
+    Developers: [
+      { name: "Documentation", href: "#developers" },
+      { name: "API Reference", href: "#" },
+      { name: "SDK", href: "#developers" },
+    ],
+    Company: [
+      { name: "About", href: "#" },
+      { name: "Blog", href: "#" },
+      { name: "Careers", href: "#" },
+    ],
+  };
+
+  return (
+    <footer className="relative border-t border-black/10">
+      <div className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-12">
+        <div className="py-16 lg:py-24">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-12 lg:gap-8">
+            <div className="col-span-2">
+              <Link href="/" className="inline-flex items-center gap-2 mb-6">
+                <span className="text-2xl font-display text-black">RAG Tutor</span>
+              </Link>
+
+              <p className="text-black/70 leading-relaxed mb-8 max-w-xs">
+                AI-powered learning that teaches through understanding. Context-aware tutoring backed by your course materials.
+              </p>
+            </div>
+
+            {Object.entries(footerLinks).map(([title, links]) => (
+              <div key={title}>
+                <h3 className="text-sm font-medium text-black mb-6">{title}</h3>
+                <ul className="space-y-4">
+                  {links.map((link) => (
+                    <li key={link.name}>
+                      <Link
+                        href={link.href}
+                        className="text-sm text-black/70 hover:text-black transition-colors"
+                      >
+                        {link.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="py-8 border-t border-black/10 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-black/60">
+            2025 RAG Tutor. All rights reserved.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
-            <Button size="lg" className="rounded-full px-10 h-14 text-base shadow-xl bg-white text-black hover:bg-zinc-200 transition-all hover:scale-105" asChild>
-              <Link href="/student/auth">Get Started Now</Link>
-            </Button>
-            <Button size="lg" variant="outline" className="rounded-full px-10 h-14 text-base border-border bg-card/50 hover:bg-card/80 text-foreground transition-all hover:scale-105 backdrop-blur-sm" asChild>
-              <Link href="/student/chat">
-                Try Live Demo
-                <ArrowRight className="ml-2 w-4 h-4" />
-              </Link>
-            </Button>
+          <div className="flex items-center gap-4 text-sm text-black/60">
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-600" />
+              AI tutor ready
+            </span>
           </div>
-        </AnimatedGroup>
+        </div>
+      </div>
+    </footer>
+  );
+}
 
-        <W3DeployCTA
-          eyebrow="READY TO LEARN"
-          heading="Start your learning journey today"
-          subheading="From document upload to deep understanding — start asking questions and tracking your progress in minutes. No hallucinations. No shortcuts."
-          primaryButtonText="Go to Dashboard"
-          primaryButtonUrl="/student/dashboard"
-          secondaryButtonText="Try Demo"
-          secondaryButtonUrl="/student/chat"
-        />
-      </main>
-    </div>
+// Main Page Component
+export default function Home() {
+  return (
+    <main className="relative min-h-screen overflow-x-hidden bg-[#FFF8F0] text-black">
+      <style jsx global>{`
+        body {
+          background-color: #FFF8F0 !important;
+          color: #000000 !important;
+        }
+      `}</style>
+      <Navigation />
+      <HeroSection />
+      <FeaturesSection />
+      <CtaSection />
+      <FooterSection />
+    </main>
   );
 }
