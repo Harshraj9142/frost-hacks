@@ -576,6 +576,7 @@ export default function ChatPage() {
         courseId: selectedCourse,
         conversationHistory,
         focusedDocumentId: selectedDocumentForChat,
+        tutorMode: tutorMode, // Add tutor mode to request
       };
 
       console.log("Request body:", requestBody);
@@ -606,7 +607,7 @@ export default function ChatPage() {
           role: "assistant",
           content: data.response,
           timestamp: new Date(),
-          confidence: data.metadata?.hasDirectAnswer && data.metadata?.isBalanced ? "high" : "medium",
+          confidence: data.metadata?.isQualityResponse ? "high" : "medium",
           sources: data.sources || [],
         };
         setMessages((prev) => [...prev, aiMsg]);
