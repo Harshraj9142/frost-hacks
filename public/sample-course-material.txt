@@ -1,0 +1,188 @@
+Machine Learning Fundamentals
+
+Chapter 1: Introduction to Machine Learning
+
+Machine learning is a subset of artificial intelligence that enables computers to learn from data without being explicitly programmed. It focuses on developing algorithms that can identify patterns and make decisions based on data.
+
+Types of Machine Learning:
+
+1. Supervised Learning
+Supervised learning involves training a model on labeled data. The algorithm learns to map inputs to outputs based on example input-output pairs.
+
+Examples:
+- Classification: Predicting categories (spam/not spam, cat/dog)
+- Regression: Predicting continuous values (house prices, temperature)
+
+Common algorithms:
+- Linear Regression
+- Logistic Regression
+- Decision Trees
+- Random Forests
+- Support Vector Machines (SVM)
+- Neural Networks
+
+2. Unsupervised Learning
+Unsupervised learning works with unlabeled data. The algorithm tries to find hidden patterns or structures in the data.
+
+Examples:
+- Clustering: Grouping similar data points
+- Dimensionality Reduction: Reducing the number of features
+- Anomaly Detection: Identifying unusual patterns
+
+Common algorithms:
+- K-Means Clustering
+- Hierarchical Clustering
+- Principal Component Analysis (PCA)
+- Autoencoders
+
+3. Reinforcement Learning
+Reinforcement learning involves an agent learning to make decisions by interacting with an environment. The agent receives rewards or penalties based on its actions.
+
+Examples:
+- Game playing (Chess, Go)
+- Robotics
+- Autonomous vehicles
+- Resource management
+
+Key Concepts:
+
+Training Data: The dataset used to train the model
+Testing Data: The dataset used to evaluate the model's performance
+Features: Input variables used to make predictions
+Labels: Output variables (in supervised learning)
+Model: The mathematical representation learned from data
+Overfitting: When a model performs well on training data but poorly on new data
+Underfitting: When a model is too simple to capture patterns in the data
+
+Evaluation Metrics:
+
+For Classification:
+- Accuracy: Percentage of correct predictions
+- Precision: True positives / (True positives + False positives)
+- Recall: True positives / (True positives + False negatives)
+- F1 Score: Harmonic mean of precision and recall
+
+For Regression:
+- Mean Squared Error (MSE)
+- Root Mean Squared Error (RMSE)
+- Mean Absolute Error (MAE)
+- R-squared (R²)
+
+Chapter 2: Linear Regression
+
+Linear regression is a supervised learning algorithm used for predicting continuous values. It assumes a linear relationship between input features and the output variable.
+
+Simple Linear Regression:
+y = mx + b
+
+Where:
+- y is the predicted value
+- m is the slope
+- x is the input feature
+- b is the y-intercept
+
+Multiple Linear Regression:
+y = b₀ + b₁x₁ + b₂x₂ + ... + bₙxₙ
+
+Cost Function:
+The cost function measures how well the model fits the data. For linear regression, we use Mean Squared Error (MSE):
+
+MSE = (1/n) Σ(yᵢ - ŷᵢ)²
+
+Where:
+- n is the number of samples
+- yᵢ is the actual value
+- ŷᵢ is the predicted value
+
+Gradient Descent:
+Gradient descent is an optimization algorithm used to minimize the cost function by iteratively adjusting the model parameters.
+
+Steps:
+1. Initialize parameters randomly
+2. Calculate the cost function
+3. Compute gradients
+4. Update parameters: θ = θ - α∇J(θ)
+5. Repeat until convergence
+
+Where:
+- θ represents the parameters
+- α is the learning rate
+- ∇J(θ) is the gradient of the cost function
+
+Chapter 3: Classification
+
+Classification is a supervised learning task where the goal is to predict discrete categories or classes.
+
+Binary Classification:
+Predicting one of two possible classes (0 or 1, yes or no, true or false)
+
+Multi-class Classification:
+Predicting one of multiple possible classes (cat, dog, bird)
+
+Logistic Regression:
+Despite its name, logistic regression is used for classification. It uses the sigmoid function to map predictions to probabilities between 0 and 1.
+
+Sigmoid Function:
+σ(z) = 1 / (1 + e⁻ᶻ)
+
+Decision Boundary:
+The decision boundary is the threshold used to classify predictions. Typically set at 0.5 for binary classification.
+
+Decision Trees:
+Decision trees make predictions by learning simple decision rules from features. They split the data based on feature values to create a tree-like structure.
+
+Advantages:
+- Easy to understand and interpret
+- Requires little data preprocessing
+- Can handle both numerical and categorical data
+
+Disadvantages:
+- Prone to overfitting
+- Can be unstable with small changes in data
+
+Random Forests:
+Random forests are an ensemble method that combines multiple decision trees to improve accuracy and reduce overfitting.
+
+How it works:
+1. Create multiple decision trees using random subsets of data
+2. Each tree makes a prediction
+3. Final prediction is determined by majority vote (classification) or average (regression)
+
+Chapter 4: Neural Networks
+
+Neural networks are inspired by the structure of the human brain. They consist of interconnected nodes (neurons) organized in layers.
+
+Architecture:
+- Input Layer: Receives the input features
+- Hidden Layers: Process the information
+- Output Layer: Produces the final prediction
+
+Activation Functions:
+Activation functions introduce non-linearity into the network.
+
+Common activation functions:
+- ReLU (Rectified Linear Unit): f(x) = max(0, x)
+- Sigmoid: f(x) = 1 / (1 + e⁻ˣ)
+- Tanh: f(x) = (eˣ - e⁻ˣ) / (eˣ + e⁻ˣ)
+- Softmax: Used in the output layer for multi-class classification
+
+Backpropagation:
+Backpropagation is the algorithm used to train neural networks. It calculates gradients by propagating errors backward through the network.
+
+Steps:
+1. Forward pass: Calculate predictions
+2. Calculate loss
+3. Backward pass: Compute gradients
+4. Update weights using gradient descent
+
+Deep Learning:
+Deep learning refers to neural networks with many hidden layers. These networks can learn complex patterns and representations from data.
+
+Applications:
+- Image recognition
+- Natural language processing
+- Speech recognition
+- Autonomous vehicles
+- Medical diagnosis
+
+This concludes the introduction to machine learning fundamentals. Practice these concepts with real datasets to gain hands-on experience.
