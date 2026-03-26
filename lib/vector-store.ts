@@ -100,10 +100,12 @@ export async function deleteDocumentVectors(
   try {
     const index = await getPineconeIndex();
     
-    // Delete all vectors for this document
+    // Delete all vectors for this document using metadata filter
     await index.deleteMany({
-      fileName: { $eq: fileName },
-      courseId: { $eq: courseId },
+      filter: {
+        fileName: fileName,
+        courseId: courseId,
+      },
     });
 
     return { success: true };

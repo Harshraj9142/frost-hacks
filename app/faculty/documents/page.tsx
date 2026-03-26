@@ -211,25 +211,34 @@ export default function DocumentsPage() {
                     isDragActive
                       ? "border-primary bg-primary/5"
                       : selectedCourse
-                      ? "border-border hover:border-primary/50"
+                      ? "border-border hover:border-primary/50 hover:bg-primary/5"
                       : "border-border/30 opacity-50 cursor-not-allowed"
                   }`}
                 >
                   <input {...getInputProps()} />
-                  <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                   {isUploading ? (
-                    <div className="space-y-2">
-                      <Loader2 className="h-6 w-6 mx-auto animate-spin text-primary" />
-                      <p className="text-sm text-muted-foreground">
-                        Uploading and processing...
-                      </p>
+                    <div className="space-y-3">
+                      <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />
+                      <div>
+                        <p className="text-sm font-medium mb-1">
+                          Uploading and processing...
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          This may take a few moments
+                        </p>
+                      </div>
                     </div>
                   ) : (
                     <>
+                      <Upload className={`h-12 w-12 mx-auto mb-4 ${
+                        selectedCourse ? "text-primary" : "text-muted-foreground"
+                      }`} />
                       <p className="text-sm font-medium mb-1">
                         {isDragActive
                           ? "Drop the file here"
-                          : "Drag & drop a file here, or click to select"}
+                          : selectedCourse
+                          ? "Drag & drop a file here, or click to select"
+                          : "Please select a course first"}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Supports PDF and TXT files (max 10MB)
@@ -291,6 +300,11 @@ export default function DocumentsPage() {
                               </>
                             )}
                           </div>
+                          {doc.status === "failed" && doc.error && (
+                            <p className="text-xs text-red-400 mt-1">
+                              Error: {doc.error}
+                            </p>
+                          )}
                         </div>
                         <div className="flex items-center gap-2">
                           {getStatusIcon(doc.status)}
@@ -325,6 +339,37 @@ export default function DocumentsPage() {
 
           {/* Info Sidebar */}
           <div className="space-y-6">
+            {/* Statistics Card */}
+            <Card className="glass border-border/50">
+              <CardHeader>
+                <CardTitle className="text-base">Statistics</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Total Documents</span>
+                  <span className="text-lg font-semibold">{documents.length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Indexed</span>
+                  <span className="text-lg font-semibold text-emerald-400">
+                    {documents.filter(d => d.status === "indexed").length}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Processing</span>
+                  <span className="text-lg font-semibold text-amber-400">
+                    {documents.filter(d => d.status === "processing").length}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Failed</span>
+                  <span className="text-lg font-semibold text-red-400">
+                    {documents.filter(d => d.status === "failed").length}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card className="glass border-border/50">
               <CardHeader>
                 <CardTitle className="text-base">Upload Guidelines</CardTitle>

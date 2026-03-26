@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import connectDB from "@/lib/mongodb";
 import DocumentModel from "@/models/Document";
+import User from "@/models/User";
 
 export async function GET() {
   try {
@@ -33,6 +34,11 @@ export async function GET() {
       status: "failed",
     });
 
+    // Get total students
+    const totalStudents = await User.countDocuments({
+      role: "student",
+    });
+
     // Get recent documents
     const recentDocuments = await DocumentModel.find({
       facultyId: session.user.id,
@@ -51,6 +57,29 @@ export async function GET() {
           indexed: {
             $sum: { $cond: [{ $eq: ["$status", "indexed"] }, 1, 0] },
           },
+          totalChunks: { $sum: "$chunkCount" },
+        },
+      },
+    ]);
+
+    // Get documents by file type
+    const documentsByType = await DocumentModel.aggregate([
+      { $match: { facultyId: session.user.id } },
+      {
+        $group: {
+          _id: "$fileType",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // Calculate total chunks indexed
+    const totalChunks = await DocumentModel.aggregate([
+      { $match: { facultyId: session.user.id, status: "indexed" } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$chunkCount" },
         },
       },
     ]);
@@ -61,9 +90,12 @@ export async function GET() {
         indexedDocuments,
         processingDocuments,
         failedDocuments,
+        totalStudents,
+        totalChunks: totalChunks[0]?.total || 0,
       },
       recentDocuments,
       documentsByCourse,
+      documentsByType,
     });
   } catch (error: any) {
     console.error("Stats error:", error);
