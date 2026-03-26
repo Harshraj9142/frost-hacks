@@ -29,6 +29,7 @@ export interface ChatMessage {
   timestamp: Date;
   confidence?: "high" | "medium" | "low";
   citations?: Citation[];
+  sources?: any[]; // Full source objects with page info
   hints?: string[];
   explanation?: string;
   example?: string;

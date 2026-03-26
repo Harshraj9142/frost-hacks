@@ -20,6 +20,8 @@ export interface EnhancedChunk {
     startChar: number;
     endChar: number;
     paragraphCount: number;
+    pageNumber?: number;        // PDF page number
+    pageNumbers?: number[];     // Multiple pages if chunk spans pages
   };
 }
 
@@ -44,41 +46,48 @@ export async function processDocument(
 ): Promise<ProcessedDocument> {
   let text = "";
   let pageCount: number | undefined;
+  let pageBreaks: number[] = []; // Track character positions of page breaks
 
   if (fileType === "application/pdf") {
     try {
       // Parse PDF using pdf2json
       const pdfParser = new PDFParser();
       
-      const pdfText = await new Promise<string>((resolve, reject) => {
+      const result = await new Promise<{ text: string; pageBreaks: number[] }>((resolve, reject) => {
         pdfParser.on("pdfParser_dataError", (errData: any) => {
           reject(new Error(errData.parserError));
         });
         
         pdfParser.on("pdfParser_dataReady", (pdfData: any) => {
           try {
-            // Extract text from all pages
+            // Extract text from all pages with page tracking
             const pages = pdfData.Pages || [];
             pageCount = pages.length;
             
-            const allText = pages
-              .map((page: any) => {
-                const texts = page.Texts || [];
-                return texts
-                  .map((textItem: any) => {
-                    try {
-                      // Try to decode URI component, fallback to raw text if fails
-                      return decodeURIComponent(textItem.R[0].T);
-                    } catch (e) {
-                      // If decoding fails, return the raw text
-                      return textItem.R[0].T.replace(/%/g, ' ');
-                    }
-                  })
-                  .join(" ");
-              })
-              .join("\n");
+            let allText = "";
+            const breaks: number[] = [];
             
-            resolve(allText);
+            pages.forEach((page: any, pageIndex: number) => {
+              const texts = page.Texts || [];
+              const pageText = texts
+                .map((textItem: any) => {
+                  try {
+                    return decodeURIComponent(textItem.R[0].T);
+                  } catch (e) {
+                    return textItem.R[0].T.replace(/%/g, ' ');
+                  }
+                })
+                .join(" ");
+              
+              // Track page break position
+              if (pageIndex > 0) {
+                breaks.push(allText.length);
+              }
+              
+              allText += pageText + "\n";
+            });
+            
+            resolve({ text: allText, pageBreaks: breaks });
           } catch (error) {
             reject(error);
           }
@@ -87,13 +96,16 @@ export async function processDocument(
         pdfParser.parseBuffer(file);
       });
       
-      text = pdfText;
+      text = result.text;
+      pageBreaks = result.pageBreaks;
     } catch (error) {
       console.error("PDF parsing error:", error);
       throw new Error("Failed to parse PDF file");
     }
   } else if (fileType === "text/plain") {
     text = file.toString("utf-8");
+    // For text files, no page breaks
+    pageBreaks = [];
   } else {
     throw new Error(`Unsupported file type: ${fileType}`);
   }
@@ -101,8 +113,8 @@ export async function processDocument(
   // Clean the text
   text = text.replace(/\s+/g, " ").trim();
 
-  // Split into chunks with overlap for better context preservation
-  const chunks = chunkTextWithOverlap(text, DEFAULT_CHUNKING_CONFIG);
+  // Split into chunks with overlap and page tracking
+  const chunks = chunkTextWithOverlap(text, DEFAULT_CHUNKING_CONFIG, pageBreaks, pageCount);
 
   return {
     text,
@@ -124,11 +136,13 @@ export async function processDocument(
  * 2. Create chunks of ~512 tokens
  * 3. Add 128-token overlap between chunks (25%)
  * 4. Preserve paragraph integrity when possible
- * 5. Track metadata for each chunk
+ * 5. Track metadata for each chunk including page numbers
  */
 function chunkTextWithOverlap(
   text: string,
-  config: ChunkingConfig = DEFAULT_CHUNKING_CONFIG
+  config: ChunkingConfig = DEFAULT_CHUNKING_CONFIG,
+  pageBreaks: number[] = [],
+  totalPages?: number
 ): EnhancedChunk[] {
   const chunks: EnhancedChunk[] = [];
   
@@ -149,7 +163,9 @@ function chunkTextWithOverlap(
       // Save current chunk if exists
       if (currentChunk && currentTokens >= config.minChunkSize) {
         const chunkWithOverlap = previousChunkEnd + (previousChunkEnd ? " " : "") + currentChunk;
-        chunks.push(createEnhancedChunk(chunkWithOverlap, chunkIndex++, startChar, chunkIndex > 0));
+        const chunkStartChar = startChar - previousChunkEnd.length;
+        const pageInfo = getPageNumbers(chunkStartChar, chunkStartChar + chunkWithOverlap.length, pageBreaks, totalPages);
+        chunks.push(createEnhancedChunk(chunkWithOverlap, chunkIndex++, chunkStartChar, chunkIndex > 0, pageInfo));
         previousChunkEnd = getLastNTokens(currentChunk, config.chunkOverlap);
         startChar += currentChunk.length;
         currentChunk = "";
@@ -165,7 +181,9 @@ function chunkTextWithOverlap(
         if (currentTokens + sentenceTokens > config.chunkSize && currentChunk) {
           // Add overlap from previous chunk
           const chunkWithOverlap = previousChunkEnd + (previousChunkEnd ? " " : "") + currentChunk;
-          chunks.push(createEnhancedChunk(chunkWithOverlap, chunkIndex++, startChar, chunkIndex > 0));
+          const chunkStartChar = startChar - previousChunkEnd.length;
+          const pageInfo = getPageNumbers(chunkStartChar, chunkStartChar + chunkWithOverlap.length, pageBreaks, totalPages);
+          chunks.push(createEnhancedChunk(chunkWithOverlap, chunkIndex++, chunkStartChar, chunkIndex > 0, pageInfo));
           
           // Prepare overlap for next chunk
           previousChunkEnd = getLastNTokens(currentChunk, config.chunkOverlap);
@@ -182,7 +200,9 @@ function chunkTextWithOverlap(
       if (currentTokens + paragraphTokens > config.chunkSize && currentChunk) {
         // Save current chunk with overlap
         const chunkWithOverlap = previousChunkEnd + (previousChunkEnd ? " " : "") + currentChunk;
-        chunks.push(createEnhancedChunk(chunkWithOverlap, chunkIndex++, startChar, chunkIndex > 0));
+        const chunkStartChar = startChar - previousChunkEnd.length;
+        const pageInfo = getPageNumbers(chunkStartChar, chunkStartChar + chunkWithOverlap.length, pageBreaks, totalPages);
+        chunks.push(createEnhancedChunk(chunkWithOverlap, chunkIndex++, chunkStartChar, chunkIndex > 0, pageInfo));
         
         // Prepare overlap for next chunk
         previousChunkEnd = getLastNTokens(currentChunk, config.chunkOverlap);
@@ -199,20 +219,58 @@ function chunkTextWithOverlap(
   // Add final chunk if it meets minimum size
   if (currentChunk && currentTokens >= config.minChunkSize) {
     const chunkWithOverlap = previousChunkEnd + (previousChunkEnd ? " " : "") + currentChunk;
-    chunks.push(createEnhancedChunk(chunkWithOverlap, chunkIndex++, startChar, chunkIndex > 0));
+    const chunkStartChar = startChar - previousChunkEnd.length;
+    const pageInfo = getPageNumbers(chunkStartChar, chunkStartChar + chunkWithOverlap.length, pageBreaks, totalPages);
+    chunks.push(createEnhancedChunk(chunkWithOverlap, chunkIndex++, chunkStartChar, chunkIndex > 0, pageInfo));
   }
   
   return chunks;
 }
 
 /**
- * Create an enhanced chunk with metadata
+ * Determine which page(s) a chunk belongs to
+ */
+function getPageNumbers(
+  startChar: number,
+  endChar: number,
+  pageBreaks: number[],
+  totalPages?: number
+): { pageNumber?: number; pageNumbers?: number[] } {
+  if (!pageBreaks || pageBreaks.length === 0 || !totalPages) {
+    return {}; // No page info for non-PDF files
+  }
+  
+  const pages: number[] = [];
+  
+  // Determine which pages this chunk spans
+  for (let i = 0; i <= pageBreaks.length; i++) {
+    const pageStart = i === 0 ? 0 : pageBreaks[i - 1];
+    const pageEnd = i === pageBreaks.length ? Infinity : pageBreaks[i];
+    
+    // Check if chunk overlaps with this page
+    if (startChar < pageEnd && endChar > pageStart) {
+      pages.push(i + 1); // Page numbers are 1-indexed
+    }
+  }
+  
+  if (pages.length === 1) {
+    return { pageNumber: pages[0] };
+  } else if (pages.length > 1) {
+    return { pageNumbers: pages };
+  }
+  
+  return {};
+}
+
+/**
+ * Create an enhanced chunk with metadata including page numbers
  */
 function createEnhancedChunk(
   text: string,
   index: number,
   startChar: number,
-  hasOverlap: boolean
+  hasOverlap: boolean,
+  pageInfo: { pageNumber?: number; pageNumbers?: number[] }
 ): EnhancedChunk {
   const trimmedText = text.trim();
   return {
@@ -224,6 +282,7 @@ function createEnhancedChunk(
       startChar,
       endChar: startChar + trimmedText.length,
       paragraphCount: (trimmedText.match(/\n\n/g) || []).length + 1,
+      ...pageInfo,
     },
   };
 }

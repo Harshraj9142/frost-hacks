@@ -13,6 +13,8 @@ export interface VectorMetadata {
   uploadedAt: string;
   tokenCount?: number;
   hasOverlap?: boolean;
+  pageNumber?: number;      // Single page number
+  pageNumbers?: number[];   // Multiple pages if chunk spans pages
 }
 
 export async function indexDocument(
@@ -44,6 +46,8 @@ export async function indexDocument(
         chunkIndex: chunk.index,
         tokenCount: chunk.tokenCount,
         hasOverlap: chunk.hasOverlap,
+        pageNumber: chunk.metadata.pageNumber,
+        pageNumbers: chunk.metadata.pageNumbers,
         uploadedAt: new Date().toISOString(),
       } as any,
     }));

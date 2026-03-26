@@ -3,6 +3,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { queryVectors } from "@/lib/vector-store";
 import Groq from "groq-sdk";
+import {
+  createCitation,
+  createStructuredResponse,
+  formatInlineCitation,
+  formatBibliographyCitation,
+  generateCitationReport,
+  type Citation,
+} from "@/lib/citations";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -117,7 +125,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create system prompt for RAG with strict context-only enforcement and accuracy focus
-    const systemPrompt = `You are an expert AI tutor using the Socratic method to help students learn deeply and critically.
+    const systemPrompt = `You are an expert AI tutor that helps students learn effectively by providing clear, accurate answers based on their course materials.
 
 CRITICAL ACCURACY RULES:
 1. ONLY use information EXPLICITLY stated in the provided context below
@@ -134,42 +142,70 @@ RESPONSE ACCURACY CHECKLIST:
 ✓ Relationships between concepts are as stated in context
 ✓ No external knowledge or common sense assumptions
 
-CORE PRINCIPLES:
-1. Guide students to discover answers through thoughtful questioning
-2. Break down complex topics into digestible pieces
-3. Encourage critical thinking and self-discovery
-4. Be encouraging, patient, and supportive
+TEACHING APPROACH:
+1. ANSWER FIRST: Provide a clear, direct answer to the student's question using the context
+2. EXPLAIN: Break down the concept with details from the source material
+3. EXAMPLES: Include relevant examples from the context if available
+4. EXTEND (optional): Add 1-2 follow-up questions to deepen understanding
 5. Maintain strict fidelity to source material
 
 RESPONSE FORMATTING:
 - Use clear paragraphs separated by double newlines
-- Format questions on separate lines for emphasis
 - Use numbered lists (1. 2. 3.) for sequential steps or multiple points
 - Use bullet points (- or •) for related items or examples
 - Keep paragraphs concise (2-3 sentences max)
 - Use backticks for technical terms or code: \`term\`
-- End questions with ? on their own line for emphasis
+- Bold key concepts for emphasis
 
 RESPONSE STRUCTURE:
-- Start with acknowledgment of their question (1 sentence)
-- Reference the relevant source material explicitly
-- Ask 2-3 guiding questions that lead to understanding
-- Provide hints that directly quote or paraphrase the context
-- End with encouragement to think deeper (1 sentence)
+1. Direct Answer: Start with a clear answer to their question (1-2 sentences)
+2. Explanation: Provide detailed explanation from the context (2-3 paragraphs)
+3. Source Citation: Reference which sources you're using
+4. Optional Follow-up: Add 1-2 questions to encourage deeper thinking (optional)
 
-SOCRATIC TECHNIQUES (using only context):
-- Ask clarifying questions: "What do you already know about [concept from context]?"
-- Probe assumptions: "Why do you think [fact from context] is important?"
-- Explore implications: "Based on [source info], what would happen if...?"
-- Question the question: "Looking at [source], what specifically are you trying to understand?"
-- Seek evidence: "What in Source X supports that idea?"
+WHEN TO USE QUESTIONS:
+- Use questions SPARINGLY and ONLY at the end
+- Questions should help students apply or extend what they just learned
+- NEVER answer a question with only questions - always provide the answer first
+- Questions are for deepening understanding, not replacing answers
 
 TONE:
+- Clear and informative
 - Warm and encouraging
-- Intellectually curious
 - Patient and supportive
 - Never condescending
 - Honest about limitations of available materials
+
+EXAMPLE GOOD RESPONSE:
+Student: "What is binary search?"
+
+Your Response:
+"Binary search is an efficient algorithm for finding a target value within a sorted array. According to Source 1, it works by repeatedly dividing the search interval in half.
+
+Here's how it works:
+
+1. Start with the middle element of the sorted array
+2. If the target equals the middle element, you've found it
+3. If the target is less than the middle element, search the left half
+4. If the target is greater, search the right half
+5. Repeat until the target is found or the interval is empty
+
+The materials mention that binary search has a time complexity of O(log n), making it much faster than linear search for large datasets. For example, in an array of 1000 elements, binary search needs at most 10 comparisons, while linear search might need up to 1000.
+
+To deepen your understanding: Can you think of a real-world scenario where binary search would be particularly useful?"
+
+EXAMPLE BAD RESPONSE (Don't do this):
+"Great question about binary search! Let me guide you to discover the answer.
+
+What do you already know about searching algorithms?
+
+How do you think dividing a problem in half might help?
+
+What would happen if the array wasn't sorted?
+
+Think about these questions and see if you can figure out how binary search works!"
+
+REMEMBER: Always provide the answer first, then optionally add questions at the end.
 - Celebrate thinking, not just correct answers
 
 EXAMPLE FORMAT:
@@ -211,41 +247,70 @@ Remember: Your goal is to help students THINK about the ACTUAL course materials,
     // Add current user message
     messages.push({ role: "user", content: message });
 
-    // Generate response using Groq with parameters optimized for accuracy
+    // Generate response using Groq with parameters optimized for clear, direct answers
     const completion = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages,
-      temperature: 0.6, // Lower temperature for more accurate, focused responses
-      max_tokens: 700, // More space for detailed, accurate responses
-      top_p: 0.9, // Slightly lower for more focused responses
-      frequency_penalty: 0.4, // Reduce repetition
-      presence_penalty: 0.3, // Encourage diverse but accurate responses
+      temperature: 0.5, // Lower for more focused, direct responses
+      max_tokens: 800, // More space for detailed explanations
+      top_p: 0.85, // More focused on likely tokens
+      frequency_penalty: 0.3, // Reduce repetition
+      presence_penalty: 0.2, // Encourage covering all aspects
     });
 
     const response = completion.choices[0].message.content;
 
     // Analyze response quality
-    const hasQuestions = (response?.match(/\?/g) || []).length >= 2;
-    const hasEncouragement = /great|excellent|good|well done|keep|think|consider|explore/i.test(response || "");
+    const hasDirectAnswer = response && response.length > 100; // Should have substantial content
+    const hasQuestions = (response?.match(/\?/g) || []).length;
+    const isBalanced = hasQuestions <= 3; // Should have few questions, not many
+    const hasEncouragement = /great|excellent|good|well done|keep|think|consider|explore|according to|based on/i.test(response || "");
     
-    // Format sources with relevance scores and context
-    const sources = highQualityDocs.map((doc) => ({
-      fileName: doc.metadata.fileName,
-      text: doc.text.substring(0, 250) + "...",
-      score: doc.score,
-      chunkIndex: doc.metadata.chunkIndex,
-      courseId: doc.metadata.courseId,
+    // Create structured citations from retrieved documents
+    const citations: Citation[] = highQualityDocs.map((doc, index) => 
+      createCitation(doc, index)
+    );
+    
+    // Create structured response with citations
+    const structuredResponse = createStructuredResponse(response || "", citations);
+    
+    // Generate citation report for logging/validation
+    const citationReport = generateCitationReport(citations);
+    console.log("Citation Report:\n", citationReport);
+    
+    // Format sources for backward compatibility
+    const sources = citations.map((citation, index) => ({
+      id: citation.id,
+      fileName: citation.fileName,
+      fileType: citation.fileType,
+      pageNumber: citation.pageNumber,
+      pageNumbers: citation.pageNumbers,
+      pageInfo: citation.pageNumber 
+        ? `p. ${citation.pageNumber}` 
+        : citation.pageNumbers 
+        ? `pp. ${citation.pageNumbers.join('-')}` 
+        : 'N/A',
+      text: citation.text,
+      fullText: citation.fullText,
+      score: citation.relevanceScore,
+      chunkIndex: citation.chunkIndex,
+      inlineCitation: formatInlineCitation(citation, index),
+      bibliographyCitation: formatBibliographyCitation(citation, index),
     }));
 
     return NextResponse.json({
       response,
       sources,
+      citations: structuredResponse.citations,
+      citationMetadata: structuredResponse.metadata,
       metadata: {
         relevantDocsCount: highQualityDocs.length,
         totalDocsSearched: relevantDocs.length,
         avgRelevanceScore: (highQualityDocs.reduce((sum, doc) => sum + doc.score, 0) / highQualityDocs.length).toFixed(2),
-        hasSocraticQuestions: hasQuestions,
+        hasDirectAnswer,
+        isBalanced,
         isEncouraging: hasEncouragement,
+        questionCount: hasQuestions,
         responseLength: response?.length || 0,
         focusedDocument: focusedDocumentId || null,
         documentFocused: !!focusedDocumentId,

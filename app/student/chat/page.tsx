@@ -322,18 +322,36 @@ function ChatBubble({
           )}
 
           {/* Citations */}
-          {message.citations && message.citations.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-2">
-              {message.citations.map((cite, i) => (
-                <button
-                  key={i}
-                  onClick={onOpenSources}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 hover:bg-primary/20 text-xs text-primary transition-colors"
-                >
-                  <FileText className="h-3 w-3" />
-                  {cite.fileName}, p.{cite.pageNumber}
-                </button>
-              ))}
+          {message.sources && message.sources.length > 0 && (
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center gap-2">
+                <div className="h-px flex-1 bg-border/50" />
+                <span className="text-[10px] text-muted-foreground font-medium">SOURCES</span>
+                <div className="h-px flex-1 bg-border/50" />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {message.sources.map((source: any, i: number) => (
+                  <button
+                    key={i}
+                    onClick={onOpenSources}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary/10 hover:bg-primary/20 text-xs text-primary transition-colors border border-primary/20"
+                    title={source.text}
+                  >
+                    <FileText className="h-3 w-3" />
+                    <span className="font-medium">[{i + 1}]</span>
+                    <span className="truncate max-w-[120px]">{source.fileName}</span>
+                    {source.pageInfo && source.pageInfo !== 'N/A' && (
+                      <>
+                        <span className="text-primary/60">•</span>
+                        <span>{source.pageInfo}</span>
+                      </>
+                    )}
+                    <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5 ml-1">
+                      {(source.score * 100).toFixed(0)}%
+                    </Badge>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -570,6 +588,7 @@ export default function ChatPage() {
 
       const data = await response.json();
       console.log("Response metadata:", data.metadata);
+      console.log("Citations:", data.citations);
       setIsTyping(false);
 
       if (data.error) {
@@ -587,7 +606,8 @@ export default function ChatPage() {
           role: "assistant",
           content: data.response,
           timestamp: new Date(),
-          confidence: data.metadata?.hasSocraticQuestions ? "high" : "medium",
+          confidence: data.metadata?.hasDirectAnswer && data.metadata?.isBalanced ? "high" : "medium",
+          sources: data.sources || [],
         };
         setMessages((prev) => [...prev, aiMsg]);
         
@@ -1242,10 +1262,13 @@ export default function ChatPage() {
                     {sources.map((source, i) => (
                       <div
                         key={i}
-                        className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors space-y-2"
+                        className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors space-y-2 border border-border/30"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <div className="flex items-center justify-center h-5 w-5 rounded bg-primary/20 text-primary text-[10px] font-bold flex-shrink-0">
+                              {i + 1}
+                            </div>
                             <FileText className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                             <span className="text-xs font-medium truncate">
                               {source.fileName}
@@ -1258,14 +1281,54 @@ export default function ChatPage() {
                             {(source.score * 100).toFixed(0)}%
                           </Badge>
                         </div>
-                        {source.chunkIndex !== undefined && (
-                          <p className="text-[10px] text-muted-foreground">
-                            Chunk #{source.chunkIndex + 1}
+                        
+                        {/* Page Information */}
+                        <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                          {source.pageInfo && source.pageInfo !== 'N/A' && (
+                            <div className="flex items-center gap-1">
+                              <BookOpen className="h-3 w-3" />
+                              <span className="font-medium">{source.pageInfo}</span>
+                            </div>
+                          )}
+                          {source.chunkIndex !== undefined && (
+                            <div className="flex items-center gap-1">
+                              <span>Chunk #{source.chunkIndex + 1}</span>
+                            </div>
+                          )}
+                          {source.fileType && (
+                            <Badge variant="outline" className="text-[8px] px-1 py-0 h-3">
+                              {source.fileType}
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        {/* Citation Text */}
+                        <div className="space-y-1">
+                          <p className="text-xs leading-relaxed border-l-2 border-primary/30 pl-3 text-muted-foreground">
+                            {source.text}
                           </p>
-                        )}
-                        <p className="text-xs leading-relaxed border-l-2 border-primary/30 pl-3 text-muted-foreground">
-                          {source.text}
-                        </p>
+                          {source.inlineCitation && (
+                            <p className="text-[9px] text-muted-foreground/70 font-mono pl-3">
+                              {source.inlineCitation}
+                            </p>
+                          )}
+                        </div>
+                        
+                        {/* Copy Citation Button */}
+                        <div className="flex gap-1 pt-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-[10px] px-2"
+                            onClick={() => {
+                              const citationText = source.bibliographyCitation || source.inlineCitation || `${source.fileName}${source.pageInfo ? ', ' + source.pageInfo : ''}`;
+                              navigator.clipboard.writeText(citationText);
+                            }}
+                          >
+                            <Copy className="h-3 w-3 mr-1" />
+                            Copy Citation
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </>
