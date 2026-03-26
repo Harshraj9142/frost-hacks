@@ -20,7 +20,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useCourseStore } from "@/lib/store";
-import { mockAnalyticsData } from "@/lib/mock-data";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -270,40 +269,7 @@ export default function FacultyDashboardPage() {
             </motion.div>
           </div>
 
-          <motion.div variants={fadeInUp}>
-            <Card className="glass border-border/50">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-400" />
-                  Student Pain Points
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {mockAnalyticsData.topicDifficulty
-                    .sort((a, b) => b.difficulty - a.difficulty)
-                    .slice(0, 4)
-                    .map((topic, i) => (
-                      <div key={i} className="p-4 rounded-xl bg-muted/30 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">{topic.topic}</span>
-                          <span className="text-xs text-amber-400">
-                            {Math.round(topic.difficulty * 100)}%
-                          </span>
-                        </div>
-                        <Progress
-                          value={topic.difficulty * 100}
-                          className="h-1.5"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          {topic.queries} queries
-                        </p>
-                      </div>
-                    ))}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+
         </motion.div>
       </div>
     </div>

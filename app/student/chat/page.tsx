@@ -14,7 +14,6 @@ import {
   AlertTriangle,
   Brain,
   Sparkles,
-  MessageSquare,
   PanelRightOpen,
   PanelRightClose,
   Bookmark,
@@ -22,9 +21,12 @@ import {
   ThumbsUp,
   ThumbsDown,
   Zap,
-  Focus,
   Eye,
   EyeOff,
+  Download,
+  CheckCircle2,
+  Loader2,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,14 +34,12 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import {
   useChatStore,
   useCourseStore,
   useUIStore,
   type ChatMessage,
 } from "@/lib/store";
-import { mockMessages, mockCitations, mockOutOfScopeMessage } from "@/lib/mock-data";
 
 function TypingIndicator() {
   return (
@@ -75,12 +75,21 @@ function TypingIndicator() {
 function ChatBubble({
   message,
   onOpenSources,
+  onCopy,
 }: {
   message: ChatMessage;
   onOpenSources: () => void;
+  onCopy: (text: string) => void;
 }) {
   const [showExplanation, setShowExplanation] = useState(false);
   const [activeTab, setActiveTab] = useState("hints");
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    onCopy(message.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   if (message.role === "user") {
     return (
@@ -237,8 +246,17 @@ function ChatBubble({
 
         {/* Actions */}
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-7 w-7">
-            <Copy className="h-3 w-3" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-7 w-7"
+            onClick={handleCopy}
+          >
+            {copied ? (
+              <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+            ) : (
+              <Copy className="h-3 w-3" />
+            )}
           </Button>
           <Button variant="ghost" size="icon" className="h-7 w-7">
             <Bookmark className="h-3 w-3" />
@@ -278,14 +296,70 @@ export default function ChatPage() {
   const [sourcesOpen, setSourcesOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [sources, setSources] = useState<any[]>([]);
+  const [courseDocuments, setCourseDocuments] = useState<any[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { tutorMode, setTutorMode, sessions } = useChatStore();
+  const { tutorMode, setTutorMode } = useChatStore();
   const courses = useCourseStore((s) => s.courses);
   const { focusMode, toggleFocusMode } = useUIStore();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
+
+  // Fetch course documents when course is selected
+  useEffect(() => {
+    if (selectedCourse) {
+      fetchCourseDocuments();
+    }
+  }, [selectedCourse]);
+
+  const fetchCourseDocuments = async () => {
+    if (!selectedCourse) return;
+    
+    setLoadingDocs(true);
+    try {
+      const res = await fetch(`/api/documents?courseId=${selectedCourse}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCourseDocuments(data.documents || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch documents:", error);
+    } finally {
+      setLoadingDocs(false);
+    }
+  };
+
+  const handleCopyMessage = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  const handleExportChat = () => {
+    const chatText = messages
+      .map((msg) => {
+        const role = msg.role === "user" ? "You" : "AI Tutor";
+        const timestamp = new Date(msg.timestamp).toLocaleString();
+        return `[${timestamp}] ${role}:\n${msg.content}\n`;
+      })
+      .join("\n---\n\n");
+
+    const blob = new Blob([chatText], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `chat-${selectedCourse}-${Date.now()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleNewChat = () => {
+    setMessages([]);
+    setSources([]);
+    setInput("");
+  };
 
   const handleSend = async () => {
     if (!input.trim() || !selectedCourse) return;
@@ -298,16 +372,24 @@ export default function ChatPage() {
     };
 
     setMessages((prev) => [...prev, userMsg]);
+    const currentInput = input;
     setInput("");
     setIsTyping(true);
 
     try {
+      // Build conversation history for context
+      const conversationHistory = messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: input,
+          message: currentInput,
           courseId: selectedCourse,
+          conversationHistory,
         }),
       });
 
@@ -329,13 +411,15 @@ export default function ChatPage() {
           role: "assistant",
           content: data.response,
           timestamp: new Date(),
-          confidence: "high",
+          confidence: data.metadata?.hasSocraticQuestions ? "high" : "medium",
         };
         setMessages((prev) => [...prev, aiMsg]);
         
         if (data.sources && data.sources.length > 0) {
           setSources(data.sources);
-          setSourcesOpen(true);
+          if (!sourcesOpen) {
+            setSourcesOpen(true);
+          }
         }
       }
     } catch (error) {
@@ -363,7 +447,10 @@ export default function ChatPage() {
             className="hidden lg:flex flex-col border-r border-border/50 bg-card/50 overflow-hidden"
           >
             <div className="p-4 space-y-4">
-              <Button className="w-full gap-2 gradient-primary text-white border-0 shadow-md">
+              <Button 
+                onClick={handleNewChat}
+                className="w-full gap-2 gradient-primary text-white border-0 shadow-md"
+              >
                 <Plus className="h-4 w-4" /> New Chat
               </Button>
 
@@ -392,25 +479,42 @@ export default function ChatPage() {
                 ))}
               </div>
 
-              <Separator />
+              {/* Course Documents Info */}
+              {selectedCourse && (
+                <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-border/50">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-xs font-medium">Course Materials</span>
+                  </div>
+                  {loadingDocs ? (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Loading...
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Total Documents</span>
+                        <span className="font-medium">{courseDocuments.length}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Indexed</span>
+                        <span className="font-medium text-emerald-400">
+                          {courseDocuments.filter(d => d.status === "indexed").length}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">Total Chunks</span>
+                        <span className="font-medium">
+                          {courseDocuments.reduce((sum, d) => sum + (d.chunkCount || 0), 0)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
-              {/* Chat History */}
-              <div>
-                <h3 className="text-xs text-muted-foreground font-medium mb-2 px-1">
-                  RECENT CHATS
-                </h3>
-                <ScrollArea className="h-[300px]">
-                  {sessions.map((session) => (
-                    <button
-                      key={session.id}
-                      className="w-full text-left p-2.5 rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2 text-sm mb-1"
-                    >
-                      <MessageSquare className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                      <span className="truncate">{session.title}</span>
-                    </button>
-                  ))}
-                </ScrollArea>
-              </div>
+
             </div>
           </motion.aside>
         )}
@@ -445,6 +549,17 @@ export default function ChatPage() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            {messages.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1 text-xs"
+                onClick={handleExportChat}
+              >
+                <Download className="h-3 w-3" />
+                Export
+              </Button>
+            )}
             <div className="flex items-center gap-2 mr-2">
               <span className="text-xs text-muted-foreground">
                 {tutorMode === "guided" ? "Guided" : "Direct"}
@@ -510,6 +625,7 @@ export default function ChatPage() {
                 key={msg.id}
                 message={msg}
                 onOpenSources={() => setSourcesOpen(true)}
+                onCopy={handleCopyMessage}
               />
             ))}
 
@@ -521,23 +637,6 @@ export default function ChatPage() {
         {/* Input */}
         <div className="p-4 border-t border-border/50 bg-card/30">
           <div className="max-w-3xl mx-auto">
-            {/* Smart suggestions */}
-            <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
-              {[
-                "Explain with an example",
-                "What's the time complexity?",
-                "Give me a practice problem",
-              ].map((s, i) => (
-                <button
-                  key={i}
-                  onClick={() => setInput(s)}
-                  className="text-xs px-3 py-1.5 rounded-full bg-muted/50 hover:bg-primary/10 hover:text-primary border border-border/50 transition-colors whitespace-nowrap flex-shrink-0"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-
             <div className="relative flex items-end gap-2">
               <div className="flex-1 relative">
                 <Textarea
@@ -607,31 +706,57 @@ export default function ChatPage() {
               </Button>
             </div>
             <ScrollArea className="flex-1 p-4">
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {sources.length === 0 ? (
                   <div className="text-center py-8 text-sm text-muted-foreground">
-                    No sources yet. Ask a question to see relevant course materials.
+                    <Info className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No sources yet.</p>
+                    <p className="text-xs mt-1">Ask a question to see relevant materials.</p>
                   </div>
                 ) : (
-                  sources.map((source, i) => (
-                    <div
-                      key={i}
-                      className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors space-y-2"
-                    >
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-3.5 w-3.5 text-primary" />
+                  <>
+                    <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+                      <div className="flex items-center gap-2 mb-1">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
                         <span className="text-xs font-medium">
-                          {source.fileName}
+                          {sources.length} Relevant Sources Found
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        Score: {(source.score * 100).toFixed(1)}%
-                      </p>
-                      <p className="text-xs leading-relaxed border-l-2 border-primary/30 pl-3 text-muted-foreground">
-                        {source.text}
+                      <p className="text-[10px] text-muted-foreground">
+                        All responses are based on these course materials
                       </p>
                     </div>
-                  ))
+                    
+                    {sources.map((source, i) => (
+                      <div
+                        key={i}
+                        className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors space-y-2"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <FileText className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                            <span className="text-xs font-medium truncate">
+                              {source.fileName}
+                            </span>
+                          </div>
+                          <Badge 
+                            variant="outline" 
+                            className="text-[9px] px-1.5 py-0 h-4"
+                          >
+                            {(source.score * 100).toFixed(0)}%
+                          </Badge>
+                        </div>
+                        {source.chunkIndex !== undefined && (
+                          <p className="text-[10px] text-muted-foreground">
+                            Chunk #{source.chunkIndex + 1}
+                          </p>
+                        )}
+                        <p className="text-xs leading-relaxed border-l-2 border-primary/30 pl-3 text-muted-foreground">
+                          {source.text}
+                        </p>
+                      </div>
+                    ))}
+                  </>
                 )}
               </div>
             </ScrollArea>
