@@ -607,8 +607,9 @@ export default function ChatPage() {
           role: "assistant",
           content: data.response,
           timestamp: new Date(),
-          confidence: data.metadata?.isQualityResponse ? "high" : "medium",
+          confidence: data.isOutOfScope ? "low" : data.metadata?.isQualityResponse ? "high" : "medium",
           sources: data.sources || [],
+          isOutOfScope: data.isOutOfScope || false,
         };
         setMessages((prev) => [...prev, aiMsg]);
         

@@ -67,28 +67,76 @@ export async function POST(req: NextRequest) {
         response: focusMessage,
         sources: [],
         noContext: true,
+        isOutOfScope: true,
+        scopeReason: "no_documents",
         focusedDocument: focusedDocumentId || null,
       });
     }
 
-    // Use a more lenient threshold for better coverage (0.60 instead of 0.65)
-    const highQualityDocs = relevantDocs.filter(doc => doc.score >= 0.60);
+    // Enhanced out-of-scope detection with multiple thresholds
+    const RELEVANCE_THRESHOLDS = {
+      HIGH_QUALITY: 0.70,      // Strong match - definitely in scope
+      ACCEPTABLE: 0.55,        // Acceptable match - likely in scope
+      OUT_OF_SCOPE: 0.45,      // Below this - definitely out of scope
+    };
+
+    const bestScore = relevantDocs[0]?.score || 0;
+    const highQualityDocs = relevantDocs.filter(doc => doc.score >= RELEVANCE_THRESHOLDS.ACCEPTABLE);
+    const hasStrongMatch = relevantDocs.some(doc => doc.score >= RELEVANCE_THRESHOLDS.HIGH_QUALITY);
     
-    if (highQualityDocs.length === 0) {
-      // Provide helpful response even with low-quality matches
+    // STRICT OUT-OF-SCOPE REJECTION
+    if (bestScore < RELEVANCE_THRESHOLDS.OUT_OF_SCOPE) {
+      const outOfScopeMessage = `I cannot answer this question as it appears to be outside the scope of your course materials.
+
+Your question seems to be about topics not covered in the uploaded documents. I can only help with questions directly related to your course content.
+
+${focusedDocumentId ? "You're currently focused on a specific document. " : ""}Please ask questions about:
+- Topics covered in your course materials
+- Concepts from the uploaded documents
+- Content your instructor has provided
+
+Would you like to ask about something from your course materials instead?`;
+      
+      return NextResponse.json({
+        response: outOfScopeMessage,
+        sources: [],
+        isOutOfScope: true,
+        scopeReason: "low_relevance",
+        bestScore: bestScore.toFixed(3),
+        threshold: RELEVANCE_THRESHOLDS.OUT_OF_SCOPE,
+        focusedDocument: focusedDocumentId || null,
+      });
+    }
+    
+    // WEAK MATCH WARNING
+    if (highQualityDocs.length === 0 || !hasStrongMatch) {
       const bestMatch = relevantDocs[0];
       const focusNote = focusedDocumentId 
         ? " in the focused document" 
         : "";
       
+      const weakMatchMessage = `I found some course materials${focusNote}, but they don't seem closely related to your specific question.
+
+The closest topic I found is about: "${bestMatch.text.substring(0, 150)}..."
+
+This might not fully answer your question. Would you like to:
+1. Rephrase your question to be more specific?
+2. Ask about a different topic from your course materials?
+3. ${focusedDocumentId ? "Remove document focus and search all materials?" : "Explore this related topic anyway?"}
+
+I can only provide accurate answers for questions directly covered in your course materials.`;
+      
       return NextResponse.json({
-        response: `I found some course materials${focusNote}, but they don't seem closely related to your specific question. The closest topic I found is about "${bestMatch.text.substring(0, 100)}..."\n\nWould you like to:\n1. Explore this related topic?\n2. Rephrase your question?\n3. ${focusedDocumentId ? "Remove document focus and search all materials?" : "Ask about something else from the course materials?"}`,
+        response: weakMatchMessage,
         sources: relevantDocs.slice(0, 2).map((doc) => ({
           fileName: doc.metadata.fileName,
           text: doc.text.substring(0, 200) + "...",
           score: doc.score,
         })),
+        isOutOfScope: false,
         lowRelevance: true,
+        bestScore: bestScore.toFixed(3),
+        threshold: RELEVANCE_THRESHOLDS.ACCEPTABLE,
         focusedDocument: focusedDocumentId || null,
       });
     }
