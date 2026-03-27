@@ -356,3 +356,138 @@ export function validateResponseCitations(
     issues,
   };
 }
+
+/**
+ * Validate Socratic response quality
+ * Checks if response follows Socratic method principles
+ */
+export function validateSocraticResponse(
+  response: string
+): {
+  isSocratic: boolean;
+  questionCount: number;
+  hasDirectAnswers: boolean;
+  hasGuidingQuestions: boolean;
+  hasHints: boolean;
+  hasEncouragement: boolean;
+  hasSections: boolean;
+  quality: 'excellent' | 'good' | 'poor' | 'failing';
+  issues: string[];
+  strengths: string[];
+} {
+  const issues: string[] = [];
+  const strengths: string[] = [];
+  
+  // Count questions
+  const questions = response.match(/\?/g) || [];
+  const questionCount = questions.length;
+  
+  // Check for required sections
+  const hasExploreSection = /##\s*(Let's Explore|Think About|Guiding Questions)/i.test(response);
+  const hasHintsSection = /##\s*(Hints|Clues|From.*Materials)/i.test(response);
+  const hasEncouragementSection = /##\s*(Think About|Next Steps|Keep Going|You Can Do)/i.test(response);
+  const hasSections = hasExploreSection || hasHintsSection || hasEncouragementSection;
+  
+  // Detect direct answers (forbidden in Socratic mode)
+  const directAnswerPatterns = [
+    /^(The answer is|It is|This is|Here's how|The solution|To solve this)/im,
+    /^(Step 1:|First,.*Second,.*Third,)/im,
+    /^(In summary|To summarize|In conclusion)/im,
+    /(works by|is defined as|means that|refers to).*\./i,
+  ];
+  
+  const hasDirectAnswers = directAnswerPatterns.some(pattern => pattern.test(response));
+  
+  // Check for guiding questions (should ask "What", "How", "Why", "Can you")
+  const guidingQuestionPatterns = [
+    /What (do you think|would happen|could|might|is|are)/i,
+    /How (would|could|might|does|do)/i,
+    /Why (do you think|might|would|is|are)/i,
+    /Can you (think|imagine|predict|explain)/i,
+    /Have you considered/i,
+    /What if/i,
+  ];
+  
+  const guidingQuestions = guidingQuestionPatterns.filter(pattern => pattern.test(response));
+  const hasGuidingQuestions = guidingQuestions.length >= 2;
+  
+  // Check for hints (should have bullet points or numbered hints)
+  const hasHints = /[-•*]\s+/g.test(response) || /\d+\.\s+/g.test(response);
+  
+  // Check for encouragement
+  const encouragementPatterns = [
+    /great question/i,
+    /excellent/i,
+    /think (about|through)/i,
+    /you('ll| will) (understand|discover|figure out)/i,
+    /take your time/i,
+    /work through/i,
+    /let's explore/i,
+  ];
+  
+  const hasEncouragement = encouragementPatterns.some(pattern => pattern.test(response));
+  
+  // Validation checks
+  if (questionCount < 3) {
+    issues.push(`Only ${questionCount} questions (need at least 3)`);
+  } else {
+    strengths.push(`${questionCount} guiding questions`);
+  }
+  
+  if (hasDirectAnswers) {
+    issues.push('Contains direct answers (should only guide with questions)');
+  } else {
+    strengths.push('No direct answers - properly Socratic');
+  }
+  
+  if (!hasGuidingQuestions) {
+    issues.push('Lacks guiding questions (What/How/Why)');
+  } else {
+    strengths.push('Uses effective guiding questions');
+  }
+  
+  if (!hasHints) {
+    issues.push('Missing hints section');
+  } else {
+    strengths.push('Provides strategic hints');
+  }
+  
+  if (!hasEncouragement) {
+    issues.push('Lacks encouragement');
+  } else {
+    strengths.push('Includes encouragement');
+  }
+  
+  if (!hasSections) {
+    issues.push('Missing structured sections (## headers)');
+  } else {
+    strengths.push('Well-structured with sections');
+  }
+  
+  // Determine quality
+  let quality: 'excellent' | 'good' | 'poor' | 'failing';
+  const isSocratic = questionCount >= 3 && !hasDirectAnswers && hasGuidingQuestions;
+  
+  if (isSocratic && hasHints && hasEncouragement && hasSections) {
+    quality = 'excellent';
+  } else if (isSocratic && (hasHints || hasEncouragement)) {
+    quality = 'good';
+  } else if (questionCount >= 2 && !hasDirectAnswers) {
+    quality = 'poor';
+  } else {
+    quality = 'failing';
+  }
+  
+  return {
+    isSocratic,
+    questionCount,
+    hasDirectAnswers,
+    hasGuidingQuestions,
+    hasHints,
+    hasEncouragement,
+    hasSections,
+    quality,
+    issues,
+    strengths,
+  };
+}
