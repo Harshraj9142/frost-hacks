@@ -63,6 +63,7 @@ export async function GET(req: NextRequest) {
       timeSeriesData,
       timeRange,
       totalQueries: queryLogs.length,
+      courseId,
     });
   } catch (error: any) {
     console.error("Analytics error:", error);

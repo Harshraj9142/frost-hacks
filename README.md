@@ -50,6 +50,26 @@ RAG Tutor is an AI-powered educational platform that revolutionizes learning thr
 ## ✨ Key Features
 
 ### For Students
+- 🤖 **AI Tutor with Socratic Method**: Guides learning through questions
+- 📖 **Citation-Backed Answers**: Every response includes source references
+- 📊 **Progress Analytics**: Track your learning journey
+- 💾 **Save & Review**: Bookmark important explanations
+- 📝 **Study Materials**: Generate practice problems and summaries
+
+### For Faculty
+- 📤 **Document Upload**: Support for PDF, PPTX, DOCX
+- 📚 **Course Management**: Organize materials by course
+- 👥 **Student Monitoring**: Track engagement and progress
+- 📊 **Advanced Analytics Dashboard**: 
+  - **Topic-wise Confusion Analysis**: Heatmaps showing which topics confuse students most
+  - **Weak Concepts Identification**: Pinpoint concepts requiring additional attention
+  - **Topic Clustering**: Automatic categorization of questions into 6 categories
+  - **Student-wise Query Tracking**: Individual performance and engagement metrics
+  - **Time Series Trends**: Daily query volume and satisfaction visualization
+- 🔒 **Privacy Controls**: Automatic PII removal and anonymization
+- 📈 **Engagement Metrics**: Real-time student activity tracking
+
+### For Students
 
 - 🤖 **AI Tutor Chat**: Socratic questioning mode for deeper understanding
 - 📊 **Learning Analytics**: Track progress, streaks, and engagement

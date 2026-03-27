@@ -122,6 +122,18 @@ export default function FacultyDashboardPage() {
               "Empowering Education Through Data-Driven Insights"
             </div>
           </div>
+          <div className="flex justify-center">
+            <Link href="/faculty/analytics">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-2 border-foreground hover:bg-foreground hover:text-background font-bold uppercase tracking-wider"
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                View Advanced Analytics
+              </Button>
+            </Link>
+          </div>
         </motion.div>
 
         <motion.div
