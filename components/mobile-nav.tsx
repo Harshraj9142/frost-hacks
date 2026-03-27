@@ -11,12 +11,13 @@ import {
   Users,
   Settings,
   FileText,
+  Sparkles,
 } from "lucide-react";
 
 const studentLinks = [
   { href: "/student/dashboard", icon: LayoutDashboard, label: "Home" },
   { href: "/student/chat", icon: MessageSquare, label: "Chat" },
-  { href: "/student/learn", icon: BookOpen, label: "Learn" },
+  { href: "/student/study", icon: Sparkles, label: "Study" },
   { href: "/student/analytics", icon: BarChart3, label: "Stats" },
   { href: "/student/settings", icon: Settings, label: "More" },
 ];

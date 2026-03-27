@@ -7,8 +7,11 @@ export interface VectorMetadata {
   text: string;
   fileName: string;
   fileType: string;
-  courseId: string;
-  facultyId: string;
+  courseId?: string;
+  facultyId?: string;
+  studentId?: string;
+  isStudentDocument?: boolean;
+  documentId?: string;
   chunkIndex: number;
   uploadedAt: string;
   tokenCount?: number;
@@ -22,8 +25,11 @@ export async function indexDocument(
   metadata: {
     fileName: string;
     fileType: string;
-    courseId: string;
-    facultyId: string;
+    courseId?: string;
+    facultyId?: string;
+    studentId?: string;
+    isStudentDocument?: boolean;
+    documentId?: string;
   }
 ): Promise<{ success: boolean; vectorIds: string[] }> {
   try {
@@ -43,6 +49,9 @@ export async function indexDocument(
         fileType: metadata.fileType,
         courseId: metadata.courseId,
         facultyId: metadata.facultyId,
+        studentId: metadata.studentId,
+        isStudentDocument: metadata.isStudentDocument || false,
+        documentId: metadata.documentId,
         chunkIndex: chunk.index,
         tokenCount: chunk.tokenCount,
         hasOverlap: chunk.hasOverlap,
@@ -74,9 +83,10 @@ export async function indexDocument(
 
 export async function queryVectors(
   query: string,
-  courseId: string,
+  courseId: string | null,
   topK: number = 5,
-  focusedDocumentId?: string
+  focusedDocumentId?: string,
+  studentId?: string
 ): Promise<Array<{ text: string; score: number; metadata: VectorMetadata }>> {
   try {
     const index = await getPineconeIndex();
@@ -85,21 +95,33 @@ export async function queryVectors(
     const { generateEmbedding } = await import("./embeddings");
     const queryEmbedding = await generateEmbedding(query);
 
-    // Build filter
-    const filter: any = {
-      courseId: { $eq: courseId },
-    };
+    // Build filter based on whether it's a student query or course query
+    let filter: any = {};
 
-    // If focused on a specific document, add document filter
-    if (focusedDocumentId) {
-      // Get document details to filter by fileName
-      const connectDB = (await import("./mongodb")).default;
-      const DocumentModel = (await import("@/models/Document")).default;
-      await connectDB();
+    if (studentId) {
+      // Query student's personal documents
+      filter.studentId = { $eq: studentId };
+      filter.isStudentDocument = { $eq: true };
       
-      const document = await DocumentModel.findById(focusedDocumentId).select("fileName");
-      if (document) {
-        filter.fileName = { $eq: document.fileName };
+      // If focused on a specific document
+      if (focusedDocumentId) {
+        filter.documentId = { $eq: focusedDocumentId };
+      }
+    } else if (courseId) {
+      // Query course documents (faculty uploaded)
+      filter.courseId = { $eq: courseId };
+      filter.isStudentDocument = { $eq: false };
+      
+      // If focused on a specific document, add document filter
+      if (focusedDocumentId) {
+        const connectDB = (await import("./mongodb")).default;
+        const DocumentModel = (await import("@/models/Document")).default;
+        await connectDB();
+        
+        const document = await DocumentModel.findById(focusedDocumentId).select("fileName");
+        if (document) {
+          filter.fileName = { $eq: document.fileName };
+        }
       }
     }
 

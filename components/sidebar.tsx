@@ -12,6 +12,7 @@ import {
   Users,
   Settings,
   FileText,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,7 @@ const studentNavLinks = [
   { href: "/student/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/student/chat", label: "Chat", icon: MessageSquare },
   { href: "/student/documents", label: "Documents", icon: FileText },
+  { href: "/student/study", label: "My Study", icon: Sparkles },
   { href: "/student/learn", label: "Learn", icon: BookOpen },
   { href: "/student/analytics", label: "Analytics", icon: BarChart3 },
 ];
