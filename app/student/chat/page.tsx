@@ -696,27 +696,27 @@ export default function ChatPage() {
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: 280, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
-            className="hidden lg:flex flex-col border-r border-border/50 bg-card/50 overflow-hidden"
+            className="hidden lg:flex flex-col border-r-[3px] border-foreground overflow-hidden"
           >
             <div className="p-4 space-y-4">
               <Button 
                 onClick={handleNewChat}
-                className="w-full gap-2 gradient-primary text-white border-0 shadow-md"
+                className="w-full gap-2"
               >
-                <Plus className="h-4 w-4" /> New Chat
+                <Plus className="h-4 w-4" /> NEW CHAT
               </Button>
 
               {/* Courses */}
               <div>
-                <h3 className="text-xs text-muted-foreground font-medium mb-2 px-1">
+                <h3 className="text-xs uppercase font-bold tracking-wider mb-2 px-1">
                   SELECT COURSE
                 </h3>
                 {courses.map((course) => (
                   <button
                     key={course.id}
                     onClick={() => setSelectedCourse(course.id)}
-                    className={`w-full text-left p-2.5 rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2 text-sm mb-1 ${
-                      selectedCourse === course.id ? "bg-primary/10 border border-primary/20" : ""
+                    className={`w-full text-left p-2.5 transition-colors flex items-center gap-2 text-sm mb-1 border-[3px] ${
+                      selectedCourse === course.id ? "border-foreground" : "border-transparent"
                     }`}
                   >
                     <div
@@ -725,7 +725,7 @@ export default function ChatPage() {
                     />
                     <span className="truncate">{course.code}</span>
                     {selectedCourse === course.id && (
-                      <span className="ml-auto text-primary">✓</span>
+                      <span className="ml-auto font-bold">✓</span>
                     )}
                   </button>
                 ))}
@@ -735,7 +735,7 @@ export default function ChatPage() {
               {selectedCourse && (
                 <div className="mt-4">
                   <div className="flex items-center justify-between mb-2 px-1">
-                    <h3 className="text-xs text-muted-foreground font-medium">
+                    <h3 className="text-xs uppercase font-bold tracking-wider">
                       COURSE MATERIALS
                     </h3>
                     <div className="flex items-center gap-1">
@@ -764,27 +764,27 @@ export default function ChatPage() {
                   </div>
 
                   {/* Stats Summary */}
-                  <div className="p-3 rounded-lg bg-muted/30 border border-border/50 mb-2">
+                  <div className="p-3 border-[3px] border-foreground mb-2">
                     {loadingDocs ? (
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 text-xs">
                         <Loader2 className="h-3 w-3 animate-spin" />
                         Loading...
                       </div>
                     ) : (
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Total Documents</span>
-                          <span className="font-medium">{courseDocuments.length}</span>
+                          <span className="uppercase font-bold tracking-wider">Total Documents</span>
+                          <span className="font-bold font-serif">{courseDocuments.length}</span>
                         </div>
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Indexed</span>
-                          <span className="font-medium text-emerald-400">
+                          <span className="uppercase font-bold tracking-wider">Indexed</span>
+                          <span className="font-bold font-serif">
                             {courseDocuments.filter(d => d.status === "indexed").length}
                           </span>
                         </div>
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Total Chunks</span>
-                          <span className="font-medium">
+                          <span className="uppercase font-bold tracking-wider">Total Chunks</span>
+                          <span className="font-bold font-serif">
                             {courseDocuments.reduce((sum, d) => sum + (d.chunkCount || 0), 0)}
                           </span>
                         </div>
@@ -796,20 +796,20 @@ export default function ChatPage() {
                   {showDocuments && courseDocuments.length > 0 && (
                     <div className="space-y-2 mb-2">
                       <div className="relative">
-                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3" />
                         <input
                           type="text"
                           placeholder="Search documents..."
                           value={documentSearch}
                           onChange={(e) => setDocumentSearch(e.target.value)}
-                          className="w-full h-7 pl-7 pr-7 text-xs rounded-md bg-muted/30 border border-border/50 focus:outline-none focus:ring-1 focus:ring-primary"
+                          className="w-full h-7 pl-7 pr-7 text-xs border-[3px] border-foreground focus:outline-none"
                         />
                         {documentSearch && (
                           <button
                             onClick={() => setDocumentSearch("")}
                             className="absolute right-2 top-1/2 -translate-y-1/2"
                           >
-                            <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                            <X className="h-3 w-3" />
                           </button>
                         )}
                       </div>
@@ -819,10 +819,10 @@ export default function ChatPage() {
                           <button
                             key={filter}
                             onClick={() => setDocumentFilter(filter as any)}
-                            className={`flex-1 text-[10px] py-1 px-2 rounded-md transition-colors ${
+                            className={`flex-1 text-[10px] py-1 px-2 transition-colors uppercase font-bold tracking-wider border-[3px] ${
                               documentFilter === filter
-                                ? "bg-primary/20 text-primary border border-primary/30"
-                                : "bg-muted/20 text-muted-foreground hover:bg-muted/40"
+                                ? "border-foreground"
+                                : "border-transparent"
                             }`}
                           >
                             {filter.charAt(0).toUpperCase() + filter.slice(1)}

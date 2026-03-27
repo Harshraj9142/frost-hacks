@@ -73,8 +73,8 @@ export default function AnalyticsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Course Analytics</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-3xl font-bold font-serif">COURSE ANALYTICS</h1>
+            <p className="text-sm mt-1">
               Insights and performance metrics
             </p>
           </div>
@@ -204,16 +204,10 @@ function StatCard({
   trend: "up" | "down";
 }) {
   return (
-    <Card className="p-6">
+    <Card className="feature-box p-6">
       <div className="flex items-center justify-between">
-        <div className="h-12 w-12 rounded-lg gradient-primary flex items-center justify-center">
-          <Icon className="h-6 w-6 text-white" />
-        </div>
-        <div
-          className={`flex items-center gap-1 text-sm ${
-            trend === "up" ? "text-emerald-400" : "text-red-400"
-          }`}
-        >
+        <Icon className="h-6 w-6" />
+        <div className="flex items-center gap-1 text-sm">
           {trend === "up" ? (
             <TrendingUp className="h-4 w-4" />
           ) : (
@@ -223,8 +217,8 @@ function StatCard({
         </div>
       </div>
       <div className="mt-4">
-        <p className="text-2xl font-bold">{value}</p>
-        <p className="text-sm text-muted-foreground mt-1">{label}</p>
+        <p className="text-2xl font-bold font-serif">{value}</p>
+        <p className="text-sm uppercase font-bold tracking-wider mt-1">{label}</p>
       </div>
     </Card>
   );
@@ -233,14 +227,14 @@ function StatCard({
 // Topic Analysis Component
 function TopicAnalysis({ data }: { data: any[] }) {
   if (!data || data.length === 0) {
-    return <p className="text-muted-foreground">No topic data available</p>;
+    return <p>No topic data available</p>;
   }
 
   return (
-    <Card className="p-6">
+    <Card className="feature-box p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold">Topic-wise Confusion Analysis</h3>
-        <Badge variant="outline">Top {data.length} Topics</Badge>
+        <h3 className="text-lg uppercase font-bold tracking-wider font-serif">Topic-wise Confusion Analysis</h3>
+        <Badge variant="outline" className="uppercase font-bold tracking-wider">Top {data.length} Topics</Badge>
       </div>
 
       <ScrollArea className="h-[500px]">
@@ -312,7 +306,7 @@ function TopicAnalysis({ data }: { data: any[] }) {
 function ConfusionBadge({ level }: { level: number }) {
   if (level > 50) {
     return (
-      <Badge variant="outline" className="text-red-400 border-red-400/30">
+      <Badge variant="outline" className="uppercase font-bold tracking-wider">
         <AlertTriangle className="h-3 w-3 mr-1" />
         High Confusion
       </Badge>
@@ -320,13 +314,13 @@ function ConfusionBadge({ level }: { level: number }) {
   }
   if (level > 30) {
     return (
-      <Badge variant="outline" className="text-amber-400 border-amber-400/30">
+      <Badge variant="outline" className="uppercase font-bold tracking-wider">
         Medium Confusion
       </Badge>
     );
   }
   return (
-    <Badge variant="outline" className="text-emerald-400 border-emerald-400/30">
+    <Badge variant="outline" className="uppercase font-bold tracking-wider">
       Low Confusion
     </Badge>
   );
@@ -339,8 +333,8 @@ function TopicClusters({ data }: { data: any }) {
   const clusters = Object.entries(data).filter(([_, value]: any) => value.count > 0);
 
   return (
-    <Card className="p-6">
-      <h3 className="text-lg font-semibold mb-6">Topic Clustering</h3>
+    <Card className="feature-box p-6">
+      <h3 className="text-lg uppercase font-bold tracking-wider font-serif mb-6">Topic Clustering</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {clusters.map(([name, cluster]: any) => (
@@ -385,17 +379,17 @@ function TopicClusters({ data }: { data: any }) {
 function WeakConceptsHeatmap({ data }: { data: any[] }) {
   if (!data || data.length === 0) {
     return (
-      <Card className="p-6">
-        <p className="text-muted-foreground">No weak concepts identified</p>
+      <Card className="feature-box p-6">
+        <p>No weak concepts identified</p>
       </Card>
     );
   }
 
   return (
-    <Card className="p-6">
+    <Card className="feature-box p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold">Weak Concepts Heatmap</h3>
-        <Badge variant="outline">Top {data.length} Weak Areas</Badge>
+        <h3 className="text-lg uppercase font-bold tracking-wider font-serif">Weak Concepts Heatmap</h3>
+        <Badge variant="outline" className="uppercase font-bold tracking-wider">Top {data.length} Weak Areas</Badge>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -495,17 +489,17 @@ function WeakConceptsHeatmap({ data }: { data: any[] }) {
 function StudentTracking({ data }: { data: any[] }) {
   if (!data || data.length === 0) {
     return (
-      <Card className="p-6">
-        <p className="text-muted-foreground">No student data available</p>
+      <Card className="feature-box p-6">
+        <p>No student data available</p>
       </Card>
     );
   }
 
   return (
-    <Card className="p-6">
+    <Card className="feature-box p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold">Student-wise Query Tracking</h3>
-        <Badge variant="outline">{data.length} Students</Badge>
+        <h3 className="text-lg uppercase font-bold tracking-wider font-serif">Student-wise Query Tracking</h3>
+        <Badge variant="outline" className="uppercase font-bold tracking-wider">{data.length} Students</Badge>
       </div>
 
       <ScrollArea className="h-[600px]">
@@ -581,14 +575,8 @@ function StudentTracking({ data }: { data: any[] }) {
 
 // Engagement Badge
 function EngagementBadge({ level }: { level: string }) {
-  const colors = {
-    high: "text-emerald-400 border-emerald-400/30",
-    medium: "text-amber-400 border-amber-400/30",
-    low: "text-red-400 border-red-400/30",
-  };
-
   return (
-    <Badge variant="outline" className={colors[level as keyof typeof colors]}>
+    <Badge variant="outline" className="uppercase font-bold tracking-wider">
       {level} engagement
     </Badge>
   );
@@ -598,8 +586,8 @@ function EngagementBadge({ level }: { level: string }) {
 function TrendsChart({ data }: { data: any[] }) {
   if (!data || data.length === 0) {
     return (
-      <Card className="p-6">
-        <p className="text-muted-foreground">No trend data available</p>
+      <Card className="feature-box p-6">
+        <p>No trend data available</p>
       </Card>
     );
   }
@@ -607,8 +595,8 @@ function TrendsChart({ data }: { data: any[] }) {
   const maxQueries = Math.max(...data.map((d) => d.queries));
 
   return (
-    <Card className="p-6">
-      <h3 className="text-lg font-semibold mb-6">Query Trends Over Time</h3>
+    <Card className="feature-box p-6">
+      <h3 className="text-lg uppercase font-bold tracking-wider font-serif mb-6">Query Trends Over Time</h3>
 
       <div className="space-y-6">
         {/* Bar Chart */}

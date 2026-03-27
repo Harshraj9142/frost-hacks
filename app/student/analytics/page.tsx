@@ -96,28 +96,22 @@ function StatCard({
   color?: string;
 }) {
   return (
-    <Card className="p-4 hover:shadow-md transition-shadow">
+    <Card className="feature-box p-4">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
-            <div className={`h-8 w-8 rounded-lg bg-${color}/10 flex items-center justify-center`}>
-              <Icon className={`h-4 w-4 text-${color}`} />
-            </div>
-            <span className="text-xs text-muted-foreground font-medium">{label}</span>
+            <Icon className="h-4 w-4" />
+            <span className="text-xs uppercase font-bold tracking-wider">{label}</span>
           </div>
           <div className="space-y-1">
-            <p className="text-2xl font-bold">{value}</p>
+            <p className="text-2xl font-bold font-serif">{value}</p>
             {subtitle && (
-              <p className="text-xs text-muted-foreground">{subtitle}</p>
+              <p className="text-xs">{subtitle}</p>
             )}
           </div>
         </div>
         {trend && (
-          <div className={`flex items-center gap-1 text-xs ${
-            trend === "up" ? "text-emerald-400" : 
-            trend === "down" ? "text-red-400" : 
-            "text-muted-foreground"
-          }`}>
+          <div className="flex items-center gap-1 text-xs">
             {trend === "up" && <ArrowUp className="h-3 w-3" />}
             {trend === "down" && <ArrowDown className="h-3 w-3" />}
             {trend === "neutral" && <Minus className="h-3 w-3" />}
@@ -273,11 +267,11 @@ export default function AnalyticsPage() {
           className="flex flex-col md:flex-row md:items-center justify-between gap-4"
         >
           <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <BarChart3 className="h-6 w-6 text-primary" />
-              Learning Analytics
+            <h1 className="text-3xl font-bold font-serif flex items-center gap-2">
+              <BarChart3 className="h-6 w-6" />
+              LEARNING ANALYTICS
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm mt-1">
               Track your progress and learning patterns
             </p>
           </div>
@@ -363,38 +357,32 @@ export default function AnalyticsPage() {
           transition={{ delay: 0.2 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-4"
         >
-          <Card className="p-4 bg-gradient-to-br from-orange-500/10 to-red-500/10 border-orange-500/20">
+          <Card className="feature-box p-4">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-full bg-orange-500/20 flex items-center justify-center">
-                <Flame className="h-6 w-6 text-orange-400" />
-              </div>
+              <Flame className="h-6 w-6" />
               <div>
-                <p className="text-xs text-muted-foreground">Current Streak</p>
-                <p className="text-2xl font-bold">{data.overview.currentStreak} days</p>
+                <p className="text-xs uppercase font-bold tracking-wider">Current Streak</p>
+                <p className="text-2xl font-bold font-serif">{data.overview.currentStreak} days</p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-4 bg-gradient-to-br from-amber-500/10 to-yellow-500/10 border-amber-500/20">
+          <Card className="feature-box p-4">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-full bg-amber-500/20 flex items-center justify-center">
-                <Award className="h-6 w-6 text-amber-400" />
-              </div>
+              <Award className="h-6 w-6" />
               <div>
-                <p className="text-xs text-muted-foreground">Longest Streak</p>
-                <p className="text-2xl font-bold">{data.overview.longestStreak} days</p>
+                <p className="text-xs uppercase font-bold tracking-wider">Longest Streak</p>
+                <p className="text-2xl font-bold font-serif">{data.overview.longestStreak} days</p>
               </div>
             </div>
           </Card>
 
-          <Card className="p-4 bg-gradient-to-br from-emerald-500/10 to-green-500/10 border-emerald-500/20">
+          <Card className="feature-box p-4">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                <Target className="h-6 w-6 text-emerald-400" />
-              </div>
+              <Target className="h-6 w-6" />
               <div>
-                <p className="text-xs text-muted-foreground">Saved Content</p>
-                <p className="text-2xl font-bold">{data.savedContent.total}</p>
+                <p className="text-xs uppercase font-bold tracking-wider">Saved Content</p>
+                <p className="text-2xl font-bold font-serif">{data.savedContent.total}</p>
               </div>
             </div>
           </Card>
@@ -423,9 +411,9 @@ export default function AnalyticsPage() {
 
           <TabsContent value="activity" className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Card className="p-4">
-                <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-primary" />
+              <Card className="feature-box p-4">
+                <h3 className="text-sm uppercase font-bold tracking-wider mb-4 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
                   Daily Activity
                 </h3>
                 <LineChart
@@ -436,9 +424,9 @@ export default function AnalyticsPage() {
                 />
               </Card>
 
-              <Card className="p-4">
-                <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-primary" />
+              <Card className="feature-box p-4">
+                <h3 className="text-sm uppercase font-bold tracking-wider mb-4 flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
                   Weekly Pattern
                 </h3>
                 <SimpleBarChart
@@ -451,9 +439,9 @@ export default function AnalyticsPage() {
               </Card>
             </div>
 
-            <Card className="p-4">
-              <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" />
+            <Card className="feature-box p-4">
+              <h3 className="text-sm uppercase font-bold tracking-wider mb-4 flex items-center gap-2">
+                <Clock className="h-4 w-4" />
                 Peak Learning Hours
               </h3>
               <div className="grid grid-cols-12 gap-1">
@@ -480,9 +468,9 @@ export default function AnalyticsPage() {
           </TabsContent>
 
           <TabsContent value="documents" className="space-y-4">
-            <Card className="p-4">
-              <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-primary" />
+            <Card className="feature-box p-4">
+              <h3 className="text-sm uppercase font-bold tracking-wider mb-4 flex items-center gap-2">
+                <BookOpen className="h-4 w-4" />
                 Most Accessed Documents
               </h3>
               {data.charts.topDocuments.length > 0 ? (
@@ -501,8 +489,8 @@ export default function AnalyticsPage() {
             </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="p-4">
-                <h3 className="text-sm font-medium mb-4">Saved Content by Type</h3>
+              <Card className="feature-box p-4">
+                <h3 className="text-sm uppercase font-bold tracking-wider mb-4">Saved Content by Type</h3>
                 <div className="space-y-2">
                   {Object.entries(data.savedContent.byType).map(([type, count]) => (
                     <div key={type} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
@@ -518,8 +506,8 @@ export default function AnalyticsPage() {
                 </div>
               </Card>
 
-              <Card className="p-4">
-                <h3 className="text-sm font-medium mb-4">Activity by Course</h3>
+              <Card className="feature-box p-4">
+                <h3 className="text-sm uppercase font-bold tracking-wider mb-4">Activity by Course</h3>
                 <ScrollArea className="h-[200px]">
                   <div className="space-y-2">
                     {data.activity.byCourse.map((activity) => {
@@ -544,9 +532,9 @@ export default function AnalyticsPage() {
           </TabsContent>
 
           <TabsContent value="patterns" className="space-y-4">
-            <Card className="p-4">
-              <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-primary" />
+            <Card className="feature-box p-4">
+              <h3 className="text-sm uppercase font-bold tracking-wider mb-4 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
                 Learning Velocity (Queries per Week)
               </h3>
               <LineChart
@@ -558,8 +546,8 @@ export default function AnalyticsPage() {
             </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="p-4">
-                <h3 className="text-sm font-medium mb-2">Learning Consistency</h3>
+              <Card className="feature-box p-4">
+                <h3 className="text-sm uppercase font-bold tracking-wider mb-2">Learning Consistency</h3>
                 <div className="text-center py-4">
                   <div className="text-3xl font-bold text-primary mb-1">
                     {data.charts.queriesByDay.length > 0 
@@ -570,8 +558,8 @@ export default function AnalyticsPage() {
                 </div>
               </Card>
 
-              <Card className="p-4">
-                <h3 className="text-sm font-medium mb-2">Avg Queries/Day</h3>
+              <Card className="feature-box p-4">
+                <h3 className="text-sm uppercase font-bold tracking-wider mb-2">Avg Queries/Day</h3>
                 <div className="text-center py-4">
                   <div className="text-3xl font-bold text-primary mb-1">
                     {data.charts.queriesByDay.length > 0
@@ -582,8 +570,8 @@ export default function AnalyticsPage() {
                 </div>
               </Card>
 
-              <Card className="p-4">
-                <h3 className="text-sm font-medium mb-2">Most Active Day</h3>
+              <Card className="feature-box p-4">
+                <h3 className="text-sm uppercase font-bold tracking-wider mb-2">Most Active Day</h3>
                 <div className="text-center py-4">
                   <div className="text-3xl font-bold text-primary mb-1">
                     {data.charts.weeklyActivity.reduce((max, curr) => 
@@ -598,9 +586,9 @@ export default function AnalyticsPage() {
           </TabsContent>
 
           <TabsContent value="recent" className="space-y-4">
-            <Card className="p-4">
-              <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-                <Clock className="h-4 w-4 text-primary" />
+            <Card className="feature-box p-4">
+              <h3 className="text-sm uppercase font-bold tracking-wider mb-4 flex items-center gap-2">
+                <Clock className="h-4 w-4" />
                 Recent Activity
               </h3>
               <ScrollArea className="h-[400px]">

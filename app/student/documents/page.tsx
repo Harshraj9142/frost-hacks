@@ -213,212 +213,211 @@ export default function StudentDocumentsPage() {
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-6">
             {/* Filters */}
-            <Card className="glass border-border/50">
-              <CardContent className="pt-6">
-                <div className="grid md:grid-cols-3 gap-4">
-                  {/* Search */}
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search documents..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 pr-9"
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery("")}
-                        className="absolute right-3 top-1/2 -translate-y-1/2"
-                      >
-                        <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Course Filter */}
-                  <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Courses" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Courses</SelectItem>
-                      {courses.map((course) => (
-                        <SelectItem key={course.id} value={course.id}>
-                          {course.code}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  {/* Status Filter */}
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="indexed">Indexed</SelectItem>
-                      <SelectItem value="processing">Processing</SelectItem>
-                      <SelectItem value="failed">Failed</SelectItem>
-                    </SelectContent>
-                  </Select>
+            <div className="feature-box">
+              <div className="grid md:grid-cols-3 gap-4">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search documents..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 pr-9 border-2 border-foreground/30"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                    >
+                      <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                    </button>
+                  )}
                 </div>
 
-                <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm text-muted-foreground">
-                    {filteredDocuments.length} document{filteredDocuments.length !== 1 ? "s" : ""} found
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={fetchDocuments}
-                    className="gap-2"
-                  >
-                    <RefreshCw className="h-3 w-3" />
-                    Refresh
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                {/* Course Filter */}
+                <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                  <SelectTrigger className="border-2 border-foreground/30">
+                    <SelectValue placeholder="All Courses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Courses</SelectItem>
+                    {courses.map((course) => (
+                      <SelectItem key={course.id} value={course.id}>
+                        {course.code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Status Filter */}
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="border-2 border-foreground/30">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="indexed">Indexed</SelectItem>
+                    <SelectItem value="processing">Processing</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center justify-between mt-4 pt-4 border-t-2 border-foreground/20">
+                <p className="text-sm text-muted-foreground font-semibold">
+                  {filteredDocuments.length} document{filteredDocuments.length !== 1 ? "s" : ""} found
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={fetchDocuments}
+                  className="gap-2 border-2 border-foreground/30 hover:border-foreground/50 hover:bg-foreground/5"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Refresh
+                </Button>
+              </div>
+            </div>
 
             {/* Documents List */}
             {isLoading ? (
-              <Card className="glass border-border/50">
-                <CardContent className="py-20">
+              <div className="feature-box">
+                <div className="py-20">
                   <div className="flex flex-col items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-                    <p className="text-sm text-muted-foreground">Loading documents...</p>
+                    <Loader2 className="h-8 w-8 animate-spin text-foreground mb-4" />
+                    <p className="text-sm text-muted-foreground italic" style={{ fontFamily: 'Georgia, serif' }}>Loading documents...</p>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ) : filteredDocuments.length === 0 ? (
-              <Card className="glass border-border/50">
-                <CardContent className="py-20">
+              <div className="feature-box">
+                <div className="py-20">
                   <div className="text-center">
                     <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                    <h3 className="text-lg font-semibold mb-2">No documents found</h3>
-                    <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                    <h3 className="text-lg font-bold mb-2">No documents found</h3>
+                    <p className="text-sm text-muted-foreground max-w-md mx-auto italic" style={{ fontFamily: 'Georgia, serif' }}>
                       {searchQuery || statusFilter !== "all"
                         ? "Try adjusting your filters to see more results"
                         : "Your instructors haven't uploaded any materials yet"}
                     </p>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ) : (
               <div className="space-y-6">
                 {Object.entries(documentsByCourse).map(([courseId, courseDocs]) => {
                   const course = courses.find(c => c.id === courseId);
                   return (
-                    <Card key={courseId} className="glass border-border/50">
-                      <CardHeader>
-                        <CardTitle className="text-base flex items-center gap-2">
+                    <div key={courseId} className="feature-box">
+                      <div className="mb-4 pb-3 border-b-2 border-foreground/20">
+                        <div className="flex items-center gap-2">
                           <div
-                            className="w-3 h-3 rounded-full"
+                            className="w-3 h-3 border-2 border-foreground"
                             style={{ backgroundColor: course?.color || "#888" }}
                           />
-                          {course?.code || "Unknown Course"} - {course?.name || ""}
-                          <Badge variant="outline" className="ml-auto">
-                            {courseDocs.length} document{courseDocs.length !== 1 ? "s" : ""}
-                          </Badge>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-2">
-                          {courseDocs.map((doc) => (
-                            <motion.div
-                              key={doc._id}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              className="flex items-center gap-3 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors group"
-                            >
-                              <FileText className="h-5 w-5 text-primary flex-shrink-0" />
-                              
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
-                                  {doc.fileName}
-                                </p>
-                                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                  <span className="text-xs text-muted-foreground">
-                                    {formatFileSize(doc.fileSize)}
-                                  </span>
-                                  {doc.pageCount && (
-                                    <>
-                                      <span className="text-xs text-muted-foreground">•</span>
-                                      <span className="text-xs text-muted-foreground">
-                                        {doc.pageCount} pages
-                                      </span>
-                                    </>
-                                  )}
-                                  {doc.chunkCount > 0 && (
-                                    <>
-                                      <span className="text-xs text-muted-foreground">•</span>
-                                      <span className="text-xs text-muted-foreground">
-                                        {doc.chunkCount} chunks
-                                      </span>
-                                    </>
-                                  )}
-                                  <span className="text-xs text-muted-foreground">•</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {new Date(doc.uploadedAt).toLocaleDateString()}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                {getStatusIcon(doc.status)}
-                                <Badge
-                                  variant="outline"
-                                  className={`text-xs ${
-                                    doc.status === "indexed"
-                                      ? "text-emerald-400 border-emerald-400/30"
-                                      : doc.status === "processing"
-                                      ? "text-amber-400 border-amber-400/30"
-                                      : "text-red-400 border-red-400/30"
-                                  }`}
-                                >
-                                  {doc.status}
-                                </Badge>
-                                
-                                <div className="flex gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={() => handleViewDetails(doc)}
-                                    title="View details"
-                                  >
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                  
-                                  {doc.status === "indexed" && (
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8"
-                                      onClick={() => handleChatAboutDocument(doc)}
-                                      title="Chat about this document"
-                                    >
-                                      <MessageSquare className="h-4 w-4" />
-                                    </Button>
-                                  )}
-                                  
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={() => handleDownload(doc)}
-                                    title="Download"
-                                  >
-                                    <Download className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </motion.div>
-                          ))}
+                          <h3 className="text-base font-black uppercase tracking-wide">
+                            {course?.code || "Unknown Course"} - {course?.name || ""}
+                          </h3>
+                          <div className="ml-auto px-2 py-1 border border-foreground/30 bg-background">
+                            <span className="text-[9px] font-bold tracking-wider">
+                              {courseDocs.length} document{courseDocs.length !== 1 ? "s" : ""}
+                            </span>
+                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                      </div>
+                      <div className="space-y-2">
+                        {courseDocs.map((doc) => (
+                          <motion.div
+                            key={doc._id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex items-center gap-3 p-4 border-2 border-foreground/20 hover:border-foreground/40 transition-colors group bg-card"
+                          >
+                            <FileText className="h-5 w-5 text-foreground flex-shrink-0" />
+                            
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold truncate group-hover:text-foreground transition-colors">
+                                {doc.fileName}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                <span className="text-xs text-muted-foreground font-semibold">
+                                  {formatFileSize(doc.fileSize)}
+                                </span>
+                                {doc.pageCount && (
+                                  <>
+                                    <span className="text-xs text-muted-foreground">•</span>
+                                    <span className="text-xs text-muted-foreground font-semibold">
+                                      {doc.pageCount} pages
+                                    </span>
+                                  </>
+                                )}
+                                {doc.chunkCount > 0 && (
+                                  <>
+                                    <span className="text-xs text-muted-foreground">•</span>
+                                    <span className="text-xs text-muted-foreground font-semibold">
+                                      {doc.chunkCount} chunks
+                                    </span>
+                                  </>
+                                )}
+                                <span className="text-xs text-muted-foreground">•</span>
+                                <span className="text-xs text-muted-foreground font-semibold">
+                                  {new Date(doc.uploadedAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {getStatusIcon(doc.status)}
+                              <div className={`px-2 py-1 border ${
+                                doc.status === "indexed"
+                                  ? "border-foreground/30"
+                                  : doc.status === "processing"
+                                  ? "border-foreground/30"
+                                  : "border-red-400/30"
+                              }`}>
+                                <span className="text-[9px] font-bold tracking-wider uppercase">
+                                  {doc.status}
+                                </span>
+                              </div>
+                              
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 border-2 border-foreground/30 hover:border-foreground/50 hover:bg-foreground/5"
+                                  onClick={() => handleViewDetails(doc)}
+                                  title="View details"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                
+                                {doc.status === "indexed" && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 border-2 border-foreground/30 hover:border-foreground/50 hover:bg-foreground/5"
+                                    onClick={() => handleChatAboutDocument(doc)}
+                                    title="Chat about this document"
+                                  >
+                                    <MessageSquare className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 border-2 border-foreground/30 hover:border-foreground/50 hover:bg-foreground/5"
+                                  onClick={() => handleDownload(doc)}
+                                  title="Download"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -427,36 +426,36 @@ export default function StudentDocumentsPage() {
 
           {/* Sidebar - Statistics */}
           <div className="space-y-6">
-            <Card className="glass border-border/50">
-              <CardHeader>
-                <CardTitle className="text-base">Overview</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <div className="feature-box">
+              <div className="mb-4 pb-3 border-b-2 border-foreground">
+                <h3 className="text-base font-black uppercase tracking-wide">Overview</h3>
+              </div>
+              <div className="space-y-4">
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between pb-3 border-b border-foreground/20">
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Total</span>
+                      <span className="text-sm text-muted-foreground font-semibold">Total</span>
                     </div>
-                    <span className="text-lg font-semibold">{stats.total}</span>
+                    <span className="text-lg font-black">{stats.total}</span>
                   </div>
                   
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between pb-3 border-b border-foreground/20">
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                      <span className="text-sm text-muted-foreground">Indexed</span>
+                      <CheckCircle2 className="h-4 w-4 text-foreground" />
+                      <span className="text-sm text-muted-foreground font-semibold">Indexed</span>
                     </div>
-                    <span className="text-lg font-semibold text-emerald-400">
+                    <span className="text-lg font-black">
                       {stats.indexed}
                     </span>
                   </div>
                   
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between pb-3 border-b border-foreground/20">
                     <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 text-amber-400" />
-                      <span className="text-sm text-muted-foreground">Processing</span>
+                      <Loader2 className="h-4 w-4 text-foreground" />
+                      <span className="text-sm text-muted-foreground font-semibold">Processing</span>
                     </div>
-                    <span className="text-lg font-semibold text-amber-400">
+                    <span className="text-lg font-black">
                       {stats.processing}
                     </span>
                   </div>
@@ -464,44 +463,44 @@ export default function StudentDocumentsPage() {
                   {stats.failed > 0 && (
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4 text-red-400" />
-                        <span className="text-sm text-muted-foreground">Failed</span>
+                        <AlertCircle className="h-4 w-4 text-foreground" />
+                        <span className="text-sm text-muted-foreground font-semibold">Failed</span>
                       </div>
-                      <span className="text-lg font-semibold text-red-400">
+                      <span className="text-lg font-black">
                         {stats.failed}
                       </span>
                     </div>
                   )}
                 </div>
 
-                <div className="pt-3 border-t border-border/50 space-y-2">
+                <div className="pt-3 border-t-2 border-foreground/20 space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <HardDrive className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-muted-foreground">Total Size</span>
+                      <span className="text-muted-foreground font-semibold">Total Size</span>
                     </div>
-                    <span className="font-medium">{formatFileSize(stats.totalSize)}</span>
+                    <span className="font-black">{formatFileSize(stats.totalSize)}</span>
                   </div>
                   
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
                       <Layers className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span className="text-muted-foreground">Total Chunks</span>
+                      <span className="text-muted-foreground font-semibold">Total Chunks</span>
                     </div>
-                    <span className="font-medium">{stats.totalChunks}</span>
+                    <span className="font-black">{stats.totalChunks}</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <Card className="glass border-border/50">
-              <CardHeader>
-                <CardTitle className="text-base">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
+            <div className="feature-box">
+              <div className="mb-4 pb-3 border-b-2 border-foreground">
+                <h3 className="text-base font-black uppercase tracking-wide">Quick Actions</h3>
+              </div>
+              <div className="space-y-2">
                 <Button
                   variant="outline"
-                  className="w-full justify-start gap-2"
+                  className="w-full justify-start gap-2 border-2 border-foreground/30 hover:border-foreground/50 hover:bg-foreground/5 font-bold uppercase text-xs tracking-wider"
                   onClick={() => router.push("/student/chat")}
                 >
                   <MessageSquare className="h-4 w-4" />
@@ -509,51 +508,51 @@ export default function StudentDocumentsPage() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full justify-start gap-2"
+                  className="w-full justify-start gap-2 border-2 border-foreground/30 hover:border-foreground/50 hover:bg-foreground/5 font-bold uppercase text-xs tracking-wider"
                   onClick={() => router.push("/student/analytics")}
                 >
                   <Target className="h-4 w-4" />
                   View Analytics
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <Card className="glass border-border/50">
-              <CardHeader>
-                <CardTitle className="text-base">Document Status</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
+            <div className="feature-box">
+              <div className="mb-4 pb-3 border-b-2 border-foreground">
+                <h3 className="text-base font-black uppercase tracking-wide">Document Status</h3>
+              </div>
+              <div className="space-y-3 text-sm">
                 <div className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <CheckCircle2 className="h-4 w-4 text-foreground flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-medium text-emerald-400">Indexed</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="font-bold">Indexed</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 italic" style={{ fontFamily: 'Georgia, serif' }}>
                       Ready for questions and chat
                     </p>
                   </div>
                 </div>
                 
                 <div className="flex items-start gap-2">
-                  <Loader2 className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <Loader2 className="h-4 w-4 text-foreground flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-medium text-amber-400">Processing</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="font-bold">Processing</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 italic" style={{ fontFamily: 'Georgia, serif' }}>
                       Being indexed, available soon
                     </p>
                   </div>
                 </div>
                 
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
+                  <AlertCircle className="h-4 w-4 text-foreground flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-medium text-red-400">Failed</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="font-bold">Failed</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 italic" style={{ fontFamily: 'Georgia, serif' }}>
                       Error during processing
                     </p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>

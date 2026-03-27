@@ -329,8 +329,8 @@ export default function FacultyStudentsPage() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : filteredStudents.length === 0 ? (
-          <Card className="glass border-border/50">
-            <CardContent className="flex flex-col items-center justify-center py-20">
+          <div className="feature-box">
+            <div className="flex flex-col items-center justify-center py-20">
               <Users className="h-16 w-16 text-muted-foreground/50 mb-4" />
               <h3 className="text-lg font-medium mb-2">No students found</h3>
               <p className="text-sm text-muted-foreground text-center max-w-md">
@@ -338,8 +338,8 @@ export default function FacultyStudentsPage() {
                   ? "Try adjusting your search query"
                   : "Students will appear here once they enroll in your courses"}
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ) : (
           <motion.div
             initial="initial"
@@ -351,84 +351,83 @@ export default function FacultyStudentsPage() {
               const engagement = getEngagementLevel(student.queryCount || 0);
               return (
                 <motion.div key={student.id} variants={fadeInUp}>
-                  <Card className="glass border-border/50 hover:glow-sm transition-all">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-4">
-                        <Avatar className="h-12 w-12">
-                          <AvatarFallback className="gradient-primary text-white">
-                            {student.name.split(" ").map(n => n[0]).join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-medium truncate">{student.name}</h3>
-                            <div className={`w-2 h-2 rounded-full ${engagement.color}`} title={`${engagement.label} engagement`} />
-                          </div>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {student.email}
-                          </p>
+                  <div className="feature-box">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-12 w-12 border-2 border-foreground">
+                        <AvatarFallback className="bg-foreground text-background font-black">
+                          {student.name.split(" ").map(n => n[0]).join("")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-bold truncate">{student.name}</h3>
+                          <div className={`w-2 h-2 border border-foreground ${engagement.color}`} title={`${engagement.label} engagement`} />
                         </div>
-                        <div className="hidden lg:flex items-center gap-6">
-                          <div className="text-center min-w-[80px]">
-                            <div className="text-sm font-medium">
-                              {student.queryCount || 0}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              Queries
-                            </div>
-                          </div>
-                          <div className="text-center min-w-[80px]">
-                            <div className="text-sm font-medium">
-                              {student.courses.length}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {student.courses.length === 1 ? "Course" : "Courses"}
-                            </div>
-                          </div>
-                          {student.timeSpent !== undefined && student.timeSpent > 0 && (
-                            <div className="text-center min-w-[80px]">
-                              <div className="text-sm font-medium">
-                                {formatMinutes(student.timeSpent)}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                Time Spent
-                              </div>
-                            </div>
-                          )}
-                          {student.courses.length > 0 && (
-                            <div className="flex flex-wrap gap-1 max-w-[200px]">
-                              {student.courses.slice(0, 2).map((courseId) => {
-                                const course = courses.find((c) => c.id === courseId);
-                                return course ? (
-                                  <Badge key={courseId} variant="outline" className="text-xs">
-                                    {course.code}
-                                  </Badge>
-                                ) : null;
-                              })}
-                              {student.courses.length > 2 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{student.courses.length - 2}
-                                </Badge>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        <div className="hidden md:flex flex-col items-end min-w-[120px]">
-                          <div className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatTimeAgo(student.lastActive || student.joinedAt)}
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewStudent(student.id)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {student.email}
+                        </p>
                       </div>
-                    </CardContent>
-                  </Card>
+                      <div className="hidden lg:flex items-center gap-6">
+                        <div className="text-center min-w-[80px]">
+                          <div className="text-sm font-bold">
+                            {student.queryCount || 0}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                            Queries
+                          </div>
+                        </div>
+                        <div className="text-center min-w-[80px]">
+                          <div className="text-sm font-bold">
+                            {student.courses.length}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                            {student.courses.length === 1 ? "Course" : "Courses"}
+                          </div>
+                        </div>
+                        {student.timeSpent !== undefined && student.timeSpent > 0 && (
+                          <div className="text-center min-w-[80px]">
+                            <div className="text-sm font-bold">
+                              {formatMinutes(student.timeSpent)}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                              Time Spent
+                            </div>
+                          </div>
+                        )}
+                        {student.courses.length > 0 && (
+                          <div className="flex flex-wrap gap-1 max-w-[200px]">
+                            {student.courses.slice(0, 2).map((courseId) => {
+                              const course = courses.find((c) => c.id === courseId);
+                              return course ? (
+                                <div key={courseId} className="px-2 py-1 border border-foreground/30 bg-background">
+                                  <span className="text-[9px] font-bold tracking-wider">{course.code}</span>
+                                </div>
+                              ) : null;
+                            })}
+                            {student.courses.length > 2 && (
+                              <div className="px-2 py-1 border border-foreground/30 bg-background">
+                                <span className="text-[9px] font-bold tracking-wider">+{student.courses.length - 2}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="hidden md:flex flex-col items-end min-w-[120px]">
+                        <div className="text-xs text-muted-foreground flex items-center gap-1 font-semibold">
+                          <Clock className="h-3 w-3" />
+                          {formatTimeAgo(student.lastActive || student.joinedAt)}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewStudent(student.id)}
+                        className="border-2 border-foreground/30 hover:border-foreground/50 hover:bg-foreground/5"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </motion.div>
               );
             })}

@@ -271,67 +271,59 @@ export default function FacultyCoursesPage() {
             animate={{ opacity: 1, y: 0 }}
             className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"
           >
-            <Card className="glass border-border/50">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <BookOpen className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold">{courses.length}</div>
-                    <div className="text-xs text-muted-foreground">Total Courses</div>
-                  </div>
+            <div className="feature-box p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 border-2 border-foreground bg-background flex items-center justify-center">
+                  <BookOpen className="h-5 w-5 text-foreground" />
                 </div>
-              </CardContent>
-            </Card>
+                <div>
+                  <div className="text-2xl font-black">{courses.length}</div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Total Courses</div>
+                </div>
+              </div>
+            </div>
             
-            <Card className="glass border-border/50">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-emerald-400/10 flex items-center justify-center">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold">
-                      {courses.filter(c => c.indexedCount > 0).length}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Active</div>
-                  </div>
+            <div className="feature-box p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 border-2 border-foreground bg-background flex items-center justify-center">
+                  <CheckCircle2 className="h-5 w-5 text-foreground" />
                 </div>
-              </CardContent>
-            </Card>
+                <div>
+                  <div className="text-2xl font-black">
+                    {courses.filter(c => c.indexedCount > 0).length}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Active</div>
+                </div>
+              </div>
+            </div>
             
-            <Card className="glass border-border/50">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-cyan-400/10 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-cyan-400" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold">
-                      {courses.reduce((sum, c) => sum + c.documentCount, 0)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Documents</div>
-                  </div>
+            <div className="feature-box p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 border-2 border-foreground bg-background flex items-center justify-center">
+                  <FileText className="h-5 w-5 text-foreground" />
                 </div>
-              </CardContent>
-            </Card>
+                <div>
+                  <div className="text-2xl font-black">
+                    {courses.reduce((sum, c) => sum + c.documentCount, 0)}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Documents</div>
+                </div>
+              </div>
+            </div>
             
-            <Card className="glass border-border/50">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-amber-400/10 flex items-center justify-center">
-                    <Users className="h-5 w-5 text-amber-400" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold">
-                      {courses.reduce((sum, c) => sum + c.studentCount, 0)}
-                    </div>
-                    <div className="text-xs text-muted-foreground">Students</div>
-                  </div>
+            <div className="feature-box p-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 border-2 border-foreground bg-background flex items-center justify-center">
+                  <Users className="h-5 w-5 text-foreground" />
                 </div>
-              </CardContent>
-            </Card>
+                <div>
+                  <div className="text-2xl font-black">
+                    {courses.reduce((sum, c) => sum + c.studentCount, 0)}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Students</div>
+                </div>
+              </div>
+            </div>
           </motion.div>
         )}
 
@@ -340,11 +332,11 @@ export default function FacultyCoursesPage() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : filteredCourses.length === 0 ? (
-          <Card className="glass border-border/50">
-            <CardContent className="flex flex-col items-center justify-center py-20">
+          <div className="feature-box">
+            <div className="flex flex-col items-center justify-center py-20">
               <Search className="h-16 w-16 text-muted-foreground/50 mb-4" />
-              <h3 className="text-lg font-medium mb-2">No courses found</h3>
-              <p className="text-sm text-muted-foreground text-center max-w-md mb-4">
+              <h3 className="text-lg font-bold mb-2">No courses found</h3>
+              <p className="text-sm text-muted-foreground text-center max-w-md mb-4 italic" style={{ fontFamily: 'Georgia, serif' }}>
                 {searchQuery || filterStatus !== "all"
                   ? "Try adjusting your search or filters"
                   : "Get started by creating your first course"}
@@ -356,12 +348,13 @@ export default function FacultyCoursesPage() {
                     setSearchQuery("");
                     setFilterStatus("all");
                   }}
+                  className="border-2 border-foreground hover:bg-foreground hover:text-background font-bold uppercase text-xs tracking-wider"
                 >
                   Clear Filters
                 </Button>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ) : (
           <motion.div
             initial="initial"
@@ -371,87 +364,85 @@ export default function FacultyCoursesPage() {
           >
             {filteredCourses.map((course) => (
               <motion.div key={course.id} variants={fadeInUp}>
-                <Card className="glass border-border/50 hover:glow-sm transition-all group">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: course.color }}
-                        />
-                        <CardTitle className="text-base">{course.code}</CardTitle>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {course.indexedCount > 0 && (
-                          <Badge variant="outline" className="text-xs text-emerald-400 border-emerald-400/30">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Active
-                          </Badge>
-                        )}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-muted transition-colors">
-                              <MoreVertical className="h-4 w-4" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openEditDialog(course)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit Course
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <BarChart3 className="h-4 w-4 mr-2" />
-                              Analytics
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              onClick={() => openDeleteDialog(course)}
-                              className="text-red-400"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete Course
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                <div className="feature-box group">
+                  <div className="flex items-start justify-between mb-4 pb-3 border-b-2 border-foreground/20">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 border-2 border-foreground"
+                        style={{ backgroundColor: course.color }}
+                      />
+                      <h3 className="font-black text-base uppercase tracking-wide">{course.code}</h3>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {course.name}
-                    </p>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Instructor</span>
-                      <span className="font-medium truncate ml-2">{course.instructor}</span>
+                    <div className="flex items-center gap-2">
+                      {course.indexedCount > 0 && (
+                        <div className="px-2 py-1 border border-foreground/30 bg-background flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span className="text-[9px] font-bold tracking-wider uppercase">Active</span>
+                        </div>
+                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="inline-flex items-center justify-center h-7 w-7 border-2 border-foreground/30 hover:border-foreground/50 hover:bg-foreground/5 transition-colors">
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEditDialog(course)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Course
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <BarChart3 className="h-4 w-4 mr-2" />
+                            Analytics
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => openDeleteDialog(course)}
+                            className="text-red-400"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Course
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4 italic" style={{ fontFamily: 'Georgia, serif' }}>
+                    {course.name}
+                  </p>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-sm pb-3 border-b border-foreground/10">
+                      <span className="text-muted-foreground font-semibold">Instructor</span>
+                      <span className="font-bold truncate ml-2">{course.instructor}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3 rounded-lg bg-muted/30 text-center">
-                        <Users className="h-4 w-4 mx-auto mb-1 text-emerald-400" />
-                        <div className="text-lg font-bold">{course.studentCount}</div>
-                        <div className="text-xs text-muted-foreground">Students</div>
+                      <div className="p-3 border-2 border-foreground/20 text-center bg-card">
+                        <Users className="h-4 w-4 mx-auto mb-1" />
+                        <div className="text-lg font-black">{course.studentCount}</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Students</div>
                       </div>
-                      <div className="p-3 rounded-lg bg-muted/30 text-center">
-                        <FileText className="h-4 w-4 mx-auto mb-1 text-cyan-400" />
-                        <div className="text-lg font-bold">{course.documentCount}</div>
-                        <div className="text-xs text-muted-foreground">Documents</div>
+                      <div className="p-3 border-2 border-foreground/20 text-center bg-card">
+                        <FileText className="h-4 w-4 mx-auto mb-1" />
+                        <div className="text-lg font-black">{course.documentCount}</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Documents</div>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="p-2 rounded-lg bg-primary/5 border border-primary/10 text-center">
-                        <div className="text-sm font-bold text-primary">{course.indexedCount}</div>
-                        <div className="text-xs text-muted-foreground">Indexed</div>
+                      <div className="p-2 border-2 border-foreground/20 text-center bg-card">
+                        <div className="text-sm font-black">{course.indexedCount}</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Indexed</div>
                       </div>
-                      <div className="p-2 rounded-lg bg-primary/5 border border-primary/10 text-center">
-                        <div className="text-sm font-bold text-primary">{course.totalChunks}</div>
-                        <div className="text-xs text-muted-foreground">Chunks</div>
+                      <div className="p-2 border-2 border-foreground/20 text-center bg-card">
+                        <div className="text-sm font-black">{course.totalChunks}</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Chunks</div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </motion.div>
             ))}
           </motion.div>

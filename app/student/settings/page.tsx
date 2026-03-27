@@ -43,11 +43,11 @@ export default function SettingsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Settings className="h-6 w-6 text-primary" />
-            Settings
+          <h1 className="text-3xl font-bold font-serif flex items-center gap-2">
+            <Settings className="h-6 w-6" />
+            SETTINGS
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm mt-1">
             Manage your account and preferences
           </p>
         </motion.div>
@@ -58,16 +58,16 @@ export default function SettingsPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <Card className="glass border-border/50">
+            <Card className="feature-box">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <User className="h-4 w-4 text-primary" />
+                <CardTitle className="text-base uppercase font-bold tracking-wider flex items-center gap-2">
+                  <User className="h-4 w-4" />
                   Profile
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-4">
-                  <div className="h-16 w-16 rounded-2xl gradient-primary flex items-center justify-center text-white text-xl font-medium">
+                  <div className="h-16 w-16 border-[3px] border-foreground flex items-center justify-center text-xl font-bold font-serif">
                     {user?.name
                       ?.split(" ")
                       .map((n) => n[0])
@@ -78,7 +78,7 @@ export default function SettingsPage() {
                     <p className="text-sm text-muted-foreground">
                       {user?.email}
                     </p>
-                    <Badge variant="outline" className="mt-1 text-[10px] capitalize">
+                    <Badge variant="outline" className="mt-1 text-[10px] uppercase font-bold tracking-wider">
                       <GraduationCap className="h-3 w-3 mr-1" />
                       {user?.role}
                     </Badge>
@@ -87,24 +87,19 @@ export default function SettingsPage() {
                 <Separator />
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-xs">Full Name</Label>
+                    <Label className="text-xs uppercase font-bold tracking-wider">Full Name</Label>
                     <Input
                       defaultValue={user?.name || ""}
-                      className="bg-muted/30 border-border/50"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs">Email</Label>
+                    <Label className="text-xs uppercase font-bold tracking-wider">Email</Label>
                     <Input
                       defaultValue={user?.email || ""}
-                      className="bg-muted/30 border-border/50"
                     />
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  className="gradient-primary text-white border-0"
-                >
+                <Button size="sm">
                   Save Changes
                 </Button>
               </CardContent>
@@ -117,10 +112,10 @@ export default function SettingsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            <Card className="glass border-border/50">
+            <Card className="feature-box">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <GraduationCap className="h-4 w-4 text-primary" />
+                <CardTitle className="text-base uppercase font-bold tracking-wider flex items-center gap-2">
+                  <GraduationCap className="h-4 w-4" />
                   Role
                 </CardTitle>
               </CardHeader>
@@ -129,7 +124,7 @@ export default function SettingsPage() {
                   value={user?.role}
                   onValueChange={(v) => setRole(v as "student" | "faculty")}
                 >
-                  <SelectTrigger className="w-[200px] bg-muted/30 border-border/50">
+                  <SelectTrigger className="w-[200px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -147,10 +142,10 @@ export default function SettingsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15 }}
           >
-            <Card className="glass border-border/50">
+            <Card className="feature-box">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Palette className="h-4 w-4 text-primary" />
+                <CardTitle className="text-base uppercase font-bold tracking-wider flex items-center gap-2">
+                  <Palette className="h-4 w-4" />
                   Appearance
                 </CardTitle>
               </CardHeader>
@@ -190,10 +185,10 @@ export default function SettingsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <Card className="glass border-border/50">
+            <Card className="feature-box">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-primary" />
+                <CardTitle className="text-base uppercase font-bold tracking-wider flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
                   Privacy & Notifications
                 </CardTitle>
               </CardHeader>
@@ -240,9 +235,9 @@ export default function SettingsPage() {
           >
             <Button
               variant="outline"
-              className="w-full gap-2 text-red-400 border-red-400/30 hover:bg-red-400/10"
+              className="w-full gap-2"
             >
-              <LogOut className="h-4 w-4" /> Sign Out
+              <LogOut className="h-4 w-4" /> SIGN OUT
             </Button>
           </motion.div>
         </div>

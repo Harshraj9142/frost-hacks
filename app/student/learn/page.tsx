@@ -445,11 +445,11 @@ export default function LearnPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Brain className="h-6 w-6 text-primary" />
-            AI Learning Tools
+          <h1 className="text-3xl font-bold font-serif flex items-center gap-2">
+            <Brain className="h-6 w-6" />
+            AI LEARNING TOOLS
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm mt-1">
             Generate flashcards, quizzes, and study plans from your course materials
           </p>
         </motion.div>
@@ -460,11 +460,11 @@ export default function LearnPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
-          <Card className="glass border-border/50">
+          <Card className="feature-box">
             <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <Label>Course</Label>
+                  <Label className="uppercase font-bold tracking-wider">Course</Label>
                   <Select value={selectedCourse} onValueChange={setSelectedCourse}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select course" />
@@ -480,7 +480,7 @@ export default function LearnPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Topic (Optional)</Label>
+                  <Label className="uppercase font-bold tracking-wider">Topic (Optional)</Label>
                   <Input
                     placeholder="e.g., Binary Search"
                     value={topic}
@@ -489,7 +489,7 @@ export default function LearnPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Difficulty</Label>
+                  <Label className="uppercase font-bold tracking-wider">Difficulty</Label>
                   <Select value={difficulty} onValueChange={setDifficulty}>
                     <SelectTrigger>
                       <SelectValue />
@@ -503,7 +503,7 @@ export default function LearnPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Count</Label>
+                  <Label className="uppercase font-bold tracking-wider">Count</Label>
                   <Select value={count.toString()} onValueChange={(v) => setCount(parseInt(v))}>
                     <SelectTrigger>
                       <SelectValue />
@@ -522,23 +522,23 @@ export default function LearnPage() {
         </motion.div>
 
         <Tabs defaultValue="flashcards" className="space-y-6">
-          <TabsList className="bg-muted/30 grid grid-cols-3 lg:grid-cols-6">
-            <TabsTrigger value="flashcards" className="gap-1 text-xs">
+          <TabsList className="grid grid-cols-3 lg:grid-cols-6">
+            <TabsTrigger value="flashcards" className="gap-1 text-xs uppercase font-bold tracking-wider">
               <RotateCcw className="h-3 w-3" /> Flashcards
             </TabsTrigger>
-            <TabsTrigger value="quiz" className="gap-1 text-xs">
+            <TabsTrigger value="quiz" className="gap-1 text-xs uppercase font-bold tracking-wider">
               <Zap className="h-3 w-3" /> Quiz
             </TabsTrigger>
-            <TabsTrigger value="practice" className="gap-1 text-xs">
+            <TabsTrigger value="practice" className="gap-1 text-xs uppercase font-bold tracking-wider">
               <Target className="h-3 w-3" /> Practice
             </TabsTrigger>
-            <TabsTrigger value="summary" className="gap-1 text-xs">
+            <TabsTrigger value="summary" className="gap-1 text-xs uppercase font-bold tracking-wider">
               <BookOpen className="h-3 w-3" /> Summary
             </TabsTrigger>
-            <TabsTrigger value="explain" className="gap-1 text-xs">
+            <TabsTrigger value="explain" className="gap-1 text-xs uppercase font-bold tracking-wider">
               <Lightbulb className="h-3 w-3" /> Explain
             </TabsTrigger>
-            <TabsTrigger value="studyplan" className="gap-1 text-xs">
+            <TabsTrigger value="studyplan" className="gap-1 text-xs uppercase font-bold tracking-wider">
               <CalendarDays className="h-3 w-3" /> Plan
             </TabsTrigger>
           </TabsList>
@@ -547,11 +547,11 @@ export default function LearnPage() {
           <TabsContent value="flashcards">
             <div className="space-y-6">
               {flashcards.length === 0 ? (
-                <Card className="glass border-border/50">
+                <Card className="feature-box">
                   <CardContent className="flex flex-col items-center justify-center py-20">
-                    <RotateCcw className="h-16 w-16 text-primary/50 mb-4" />
-                    <h3 className="text-xl font-bold mb-2">Generate Flashcards</h3>
-                    <p className="text-sm text-muted-foreground max-w-md mx-auto text-center mb-6">
+                    <RotateCcw className="h-16 w-16 mb-4" />
+                    <h3 className="text-xl font-bold font-serif mb-2 uppercase tracking-wider">Generate Flashcards</h3>
+                    <p className="text-sm max-w-md mx-auto text-center mb-6">
                       AI will create flashcards from your course materials to help you study
                     </p>
                     <Button
@@ -592,7 +592,7 @@ export default function LearnPage() {
                   </div>
 
                   <Card
-                    className="glass border-border/50 cursor-pointer min-h-[300px] flex items-center justify-center"
+                    className="feature-box cursor-pointer min-h-[300px] flex items-center justify-center"
                     onClick={() => setIsFlipped(!isFlipped)}
                   >
                     <CardContent className="p-8 text-center">
@@ -668,11 +668,11 @@ export default function LearnPage() {
           <TabsContent value="quiz">
             <div className="space-y-6">
               {quizQuestions.length === 0 ? (
-                <Card className="glass border-border/50">
+                <Card className="feature-box">
                   <CardContent className="flex flex-col items-center justify-center py-20">
-                    <Zap className="h-16 w-16 text-primary/50 mb-4" />
-                    <h3 className="text-xl font-bold mb-2">Generate Quiz</h3>
-                    <p className="text-sm text-muted-foreground max-w-md mx-auto text-center mb-6">
+                    <Zap className="h-16 w-16 mb-4" />
+                    <h3 className="text-xl font-bold font-serif mb-2 uppercase tracking-wider">Generate Quiz</h3>
+                    <p className="text-sm max-w-md mx-auto text-center mb-6">
                       Test your knowledge with AI-generated multiple choice questions
                     </p>
                     <Button
@@ -695,14 +695,14 @@ export default function LearnPage() {
                   </CardContent>
                 </Card>
               ) : quizCompleted ? (
-                <Card className="glass border-border/50">
+                <Card className="feature-box">
                   <CardContent className="flex flex-col items-center justify-center py-20">
-                    <Award className="h-16 w-16 text-primary mb-4" />
-                    <h3 className="text-2xl font-bold mb-2">Quiz Complete!</h3>
-                    <p className="text-4xl font-bold text-primary mb-4">
+                    <Award className="h-16 w-16 mb-4" />
+                    <h3 className="text-2xl font-bold font-serif mb-2 uppercase tracking-wider">Quiz Complete!</h3>
+                    <p className="text-4xl font-bold font-serif mb-4">
                       {quizScore} / {quizQuestions.length}
                     </p>
-                    <p className="text-sm text-muted-foreground mb-6">
+                    <p className="text-sm mb-6">
                       {Math.round((quizScore / quizQuestions.length) * 100)}% correct
                     </p>
                     <div className="flex gap-3">
@@ -726,9 +726,9 @@ export default function LearnPage() {
                     </div>
                   </div>
 
-                  <Card className="glass border-border/50">
+                  <Card className="feature-box">
                     <CardHeader>
-                      <CardTitle className="text-lg">
+                      <CardTitle className="text-lg font-serif">
                         {quizQuestions[currentQuestion].question}
                       </CardTitle>
                     </CardHeader>
@@ -745,9 +745,9 @@ export default function LearnPage() {
                             variant="outline"
                             className={`w-full justify-start text-left h-auto py-3 ${
                               showResult && isCorrect
-                                ? "border-emerald-500 bg-emerald-500/10"
+                                ? "border-[3px]"
                                 : showResult && isSelected && !isCorrect
-                                ? "border-red-500 bg-red-500/10"
+                                ? "border-[3px]"
                                 : ""
                             }`}
                             onClick={() => handleAnswerSelect(idx)}
@@ -773,10 +773,10 @@ export default function LearnPage() {
                         <motion.div
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="p-4 rounded-lg bg-muted/50 border border-border/50"
+                          className="p-4 border-[3px] border-foreground"
                         >
-                          <p className="text-sm font-medium mb-2">Explanation:</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm font-bold uppercase tracking-wider mb-2">Explanation:</p>
+                          <p className="text-sm">
                             {quizQuestions[currentQuestion].explanation}
                           </p>
                         </motion.div>

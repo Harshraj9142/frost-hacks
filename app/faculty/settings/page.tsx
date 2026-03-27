@@ -27,16 +27,16 @@ export default function FacultySettingsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-2xl font-bold">Settings</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold font-serif">SETTINGS</h1>
+          <p className="text-sm mt-1">
             Manage your account and preferences
           </p>
         </motion.div>
 
         <motion.div {...fadeInUp} className="space-y-6">
-          <Card className="glass border-border/50">
+          <Card className="feature-box">
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="text-base uppercase font-bold tracking-wider flex items-center gap-2">
                 <User className="h-4 w-4" />
                 Profile Information
               </CardTitle>
@@ -56,9 +56,9 @@ export default function FacultySettingsPage() {
             </CardContent>
           </Card>
 
-          <Card className="glass border-border/50">
+          <Card className="feature-box">
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="text-base uppercase font-bold tracking-wider flex items-center gap-2">
                 <Bell className="h-4 w-4" />
                 Notifications
               </CardTitle>
@@ -83,9 +83,9 @@ export default function FacultySettingsPage() {
             </CardContent>
           </Card>
 
-          <Card className="glass border-border/50">
+          <Card className="feature-box">
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="text-base uppercase font-bold tracking-wider flex items-center gap-2">
                 <Shield className="h-4 w-4" />
                 Security
               </CardTitle>

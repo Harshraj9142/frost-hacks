@@ -181,18 +181,18 @@ export default function DocumentsPage() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Upload Section */}
           <div className="lg:col-span-2 space-y-6">
-            <Card className="glass border-border/50">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Upload className="h-4 w-4 text-primary" />
+            <div className="feature-box">
+              <div className="mb-6 pb-4 border-b-2 border-foreground">
+                <h2 className="text-lg font-black uppercase tracking-wide flex items-center gap-2">
+                  <Upload className="h-5 w-5" />
                   Upload Document
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+                </h2>
+              </div>
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Select Course</Label>
+                  <Label className="font-bold uppercase text-xs tracking-wider">Select Course</Label>
                   <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                    <SelectTrigger>
+                    <SelectTrigger className="border-2 border-foreground/30">
                       <SelectValue placeholder="Choose a course" />
                     </SelectTrigger>
                     <SelectContent>
@@ -207,23 +207,23 @@ export default function DocumentsPage() {
 
                 <div
                   {...getRootProps()}
-                  className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
+                  className={`border-3 border-dashed p-8 text-center transition-colors cursor-pointer ${
                     isDragActive
-                      ? "border-primary bg-primary/5"
+                      ? "border-foreground bg-foreground/5"
                       : selectedCourse
-                      ? "border-border hover:border-primary/50 hover:bg-primary/5"
-                      : "border-border/30 opacity-50 cursor-not-allowed"
+                      ? "border-foreground/30 hover:border-foreground/50 hover:bg-foreground/5"
+                      : "border-foreground/20 opacity-50 cursor-not-allowed"
                   }`}
                 >
                   <input {...getInputProps()} />
                   {isUploading ? (
                     <div className="space-y-3">
-                      <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />
+                      <Loader2 className="h-12 w-12 mx-auto animate-spin text-foreground" />
                       <div>
-                        <p className="text-sm font-medium mb-1">
+                        <p className="text-sm font-bold mb-1">
                           Uploading and processing...
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-muted-foreground italic" style={{ fontFamily: 'Georgia, serif' }}>
                           This may take a few moments
                         </p>
                       </div>
@@ -231,202 +231,199 @@ export default function DocumentsPage() {
                   ) : (
                     <>
                       <Upload className={`h-12 w-12 mx-auto mb-4 ${
-                        selectedCourse ? "text-primary" : "text-muted-foreground"
+                        selectedCourse ? "text-foreground" : "text-muted-foreground"
                       }`} />
-                      <p className="text-sm font-medium mb-1">
+                      <p className="text-sm font-bold mb-1">
                         {isDragActive
                           ? "Drop the file here"
                           : selectedCourse
                           ? "Drag & drop a file here, or click to select"
                           : "Please select a course first"}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground italic" style={{ fontFamily: 'Georgia, serif' }}>
                         Supports PDF and TXT files (max 10MB)
                       </p>
                     </>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Documents List */}
-            <Card className="glass border-border/50">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary" />
+            <div className="feature-box">
+              <div className="mb-6 pb-4 border-b-2 border-foreground">
+                <h2 className="text-lg font-black uppercase tracking-wide flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
                   Uploaded Documents
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : documents.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No documents uploaded yet</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {documents.map((doc) => (
-                      <div
-                        key={doc._id}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-                      >
-                        <FileText className="h-5 w-5 text-primary flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">
-                            {doc.fileName}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-muted-foreground">
-                              {formatFileSize(doc.fileSize)}
-                            </span>
-                            {doc.pageCount && (
-                              <>
-                                <span className="text-xs text-muted-foreground">•</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {doc.pageCount} pages
-                                </span>
-                              </>
-                            )}
-                            {doc.chunkCount > 0 && (
-                              <>
-                                <span className="text-xs text-muted-foreground">•</span>
-                                <span className="text-xs text-muted-foreground">
-                                  {doc.chunkCount} chunks
-                                </span>
-                              </>
-                            )}
-                          </div>
-                          {doc.status === "failed" && doc.error && (
-                            <p className="text-xs text-red-400 mt-1">
-                              Error: {doc.error}
-                            </p>
+                </h2>
+              </div>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : documents.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm italic" style={{ fontFamily: 'Georgia, serif' }}>No documents uploaded yet</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {documents.map((doc) => (
+                    <div
+                      key={doc._id}
+                      className="flex items-center gap-3 p-3 border-2 border-foreground/20 hover:border-foreground/40 transition-colors bg-card"
+                    >
+                      <FileText className="h-5 w-5 text-foreground flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold truncate">
+                          {doc.fileName}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-muted-foreground font-semibold">
+                            {formatFileSize(doc.fileSize)}
+                          </span>
+                          {doc.pageCount && (
+                            <>
+                              <span className="text-xs text-muted-foreground">•</span>
+                              <span className="text-xs text-muted-foreground font-semibold">
+                                {doc.pageCount} pages
+                              </span>
+                            </>
+                          )}
+                          {doc.chunkCount > 0 && (
+                            <>
+                              <span className="text-xs text-muted-foreground">•</span>
+                              <span className="text-xs text-muted-foreground font-semibold">
+                                {doc.chunkCount} chunks
+                              </span>
+                            </>
                           )}
                         </div>
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(doc.status)}
-                          <Badge
-                            variant="outline"
-                            className={`text-xs ${
-                              doc.status === "indexed"
-                                ? "text-emerald-400 border-emerald-400/30"
-                                : doc.status === "processing"
-                                ? "text-amber-400 border-amber-400/30"
-                                : "text-red-400 border-red-400/30"
-                            }`}
-                          >
-                            {doc.status}
-                          </Badge>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleDelete(doc._id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        {doc.status === "failed" && doc.error && (
+                          <p className="text-xs text-red-400 mt-1 italic" style={{ fontFamily: 'Georgia, serif' }}>
+                            Error: {doc.error}
+                          </p>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(doc.status)}
+                        <div className={`px-2 py-1 border flex items-center gap-1 ${
+                          doc.status === "indexed"
+                            ? "border-foreground/30"
+                            : doc.status === "processing"
+                            ? "border-foreground/30"
+                            : "border-red-400/30"
+                        }`}>
+                          <span className="text-[9px] font-bold tracking-wider uppercase">
+                            {doc.status}
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 border-2 border-foreground/30 hover:border-foreground/50 hover:bg-foreground/5"
+                          onClick={() => handleDelete(doc._id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Info Sidebar */}
           <div className="space-y-6">
             {/* Statistics Card */}
-            <Card className="glass border-border/50">
-              <CardHeader>
-                <CardTitle className="text-base">Statistics</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Total Documents</span>
-                  <span className="text-lg font-semibold">{documents.length}</span>
+            <div className="feature-box">
+              <div className="mb-4 pb-3 border-b-2 border-foreground">
+                <h3 className="text-base font-black uppercase tracking-wide">Statistics</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-3 border-b border-foreground/20">
+                  <span className="text-sm text-muted-foreground font-semibold">Total Documents</span>
+                  <span className="text-lg font-black">{documents.length}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Indexed</span>
-                  <span className="text-lg font-semibold text-emerald-400">
+                <div className="flex items-center justify-between pb-3 border-b border-foreground/20">
+                  <span className="text-sm text-muted-foreground font-semibold">Indexed</span>
+                  <span className="text-lg font-black">
                     {documents.filter(d => d.status === "indexed").length}
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Processing</span>
-                  <span className="text-lg font-semibold text-amber-400">
+                <div className="flex items-center justify-between pb-3 border-b border-foreground/20">
+                  <span className="text-sm text-muted-foreground font-semibold">Processing</span>
+                  <span className="text-lg font-black">
                     {documents.filter(d => d.status === "processing").length}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Failed</span>
-                  <span className="text-lg font-semibold text-red-400">
+                  <span className="text-sm text-muted-foreground font-semibold">Failed</span>
+                  <span className="text-lg font-black">
                     {documents.filter(d => d.status === "failed").length}
                   </span>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <Card className="glass border-border/50">
-              <CardHeader>
-                <CardTitle className="text-base">Upload Guidelines</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
+            <div className="feature-box">
+              <div className="mb-4 pb-3 border-b-2 border-foreground">
+                <h3 className="text-base font-black uppercase tracking-wide">Upload Guidelines</h3>
+              </div>
+              <div className="space-y-3 text-sm">
                 <div className="flex gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <CheckCircle2 className="h-4 w-4 text-foreground flex-shrink-0 mt-0.5" />
                   <span className="text-muted-foreground">
                     PDF and TXT files supported
                   </span>
                 </div>
                 <div className="flex gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <CheckCircle2 className="h-4 w-4 text-foreground flex-shrink-0 mt-0.5" />
                   <span className="text-muted-foreground">
                     Maximum file size: 10MB
                   </span>
                 </div>
                 <div className="flex gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <CheckCircle2 className="h-4 w-4 text-foreground flex-shrink-0 mt-0.5" />
                   <span className="text-muted-foreground">
                     Documents are automatically indexed
                   </span>
                 </div>
                 <div className="flex gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                  <CheckCircle2 className="h-4 w-4 text-foreground flex-shrink-0 mt-0.5" />
                   <span className="text-muted-foreground">
                     Students can query indexed content
                   </span>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <Card className="glass border-border/50">
-              <CardHeader>
-                <CardTitle className="text-base">Processing Status</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
+            <div className="feature-box">
+              <div className="mb-4 pb-3 border-b-2 border-foreground">
+                <h3 className="text-base font-black uppercase tracking-wide">Processing Status</h3>
+              </div>
+              <div className="space-y-3 text-sm">
                 <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 text-amber-400" />
+                  <Loader2 className="h-4 w-4 text-foreground" />
                   <span className="text-muted-foreground">
                     Processing: Document is being indexed
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                  <CheckCircle2 className="h-4 w-4 text-foreground" />
                   <span className="text-muted-foreground">
                     Indexed: Ready for student queries
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-red-400" />
+                  <AlertCircle className="h-4 w-4 text-foreground" />
                   <span className="text-muted-foreground">
                     Failed: Error during processing
                   </span>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>

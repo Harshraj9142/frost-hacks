@@ -13,9 +13,7 @@ import {
   FileText,
   Loader2,
   Sparkles,
-  Target,
   Clock,
-  Award,
   Zap,
   Bell,
   X,
@@ -23,8 +21,6 @@ import {
   Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useCourseStore } from "@/lib/store";
 import { toast } from "sonner";
@@ -167,27 +163,27 @@ export default function StudentDashboardPage() {
 
   return (
     <div className="min-h-screen pt-14 pb-20 md:pb-6">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-8">
+        {/* Newspaper Masthead */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-10"
         >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold mb-1">
-                {getGreeting()}, {user?.name?.split(" ")[0]}! 👋
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {currentTime.toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </p>
+          <div className="text-center mb-8 pb-6 border-b-[3px] border-t-[3px] border-foreground pt-4">
+            <div className="text-[10px] tracking-[0.3em] mb-2 text-muted-foreground font-medium">
+              VOL. I — NO. 1 • {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()} • PRICE: FREE TRUTH
             </div>
+            <h1 className="text-5xl md:text-6xl font-black tracking-tight uppercase mb-2" style={{ fontFamily: 'Georgia, serif', letterSpacing: '-0.02em' }}>
+              STUDENT CHRONICLE
+            </h1>
+            <div className="text-sm mt-3 italic text-muted-foreground" style={{ fontFamily: 'Georgia, serif' }}>
+              "{getGreeting()}, {user?.name?.split(" ")[0]} — Your Daily Learning Report"
+            </div>
+          </div>
+          <div className="flex items-center justify-center">
             <Link href="/student/chat">
-              <Button className="gradient-primary text-white border-0 gap-2 shadow-lg">
+              <Button className="bg-foreground text-background hover:bg-foreground/90 border-3 border-foreground gap-2 font-bold uppercase text-xs tracking-wide px-6">
                 <Sparkles className="h-4 w-4" />
                 Start Learning
               </Button>
@@ -204,138 +200,137 @@ export default function StudentDashboardPage() {
             initial="initial"
             animate="animate"
             variants={stagger}
-            className="space-y-6"
+            className="space-y-8"
           >
             {/* Stats Overview */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <motion.div variants={fadeInUp}>
-                <Card className="glass border-border/50 hover:glow-sm transition-all">
-                  <CardContent className="p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <BookOpen className="h-5 w-5 text-primary" />
-                      <Badge variant="outline" className="text-xs">Active</Badge>
+                <div className="feature-box">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-2 border-2 border-foreground bg-background">
+                      <BookOpen className="h-5 w-5 text-foreground" />
                     </div>
-                    <div className="text-2xl font-bold">{stats?.enrolledCourses || 0}</div>
-                    <div className="text-xs text-muted-foreground mt-1">
+                    <div className="px-2 py-1 border-2 border-foreground bg-background">
+                      <span className="text-[9px] font-black tracking-[0.15em]">ACTIVE</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-4xl font-black tracking-tight" style={{ fontFamily: 'Georgia, serif' }}>
+                      {stats?.enrolledCourses || 0}
+                    </div>
+                    <div className="text-xs font-bold uppercase tracking-[0.1em]">
                       Enrolled Courses
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </motion.div>
 
               <motion.div variants={fadeInUp}>
-                <Card className="glass border-border/50 hover:glow-sm transition-all">
-                  <CardContent className="p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <FileText className="h-5 w-5 text-emerald-400" />
-                      <Badge variant="outline" className="text-xs text-emerald-400 border-emerald-400/30">
-                        Ready
-                      </Badge>
+                <div className="feature-box">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-2 border-2 border-foreground bg-background">
+                      <FileText className="h-5 w-5 text-foreground" />
                     </div>
-                    <div className="text-2xl font-bold">{stats?.availableDocuments || 0}</div>
-                    <div className="text-xs text-muted-foreground mt-1">
+                    <div className="px-2 py-1 border-2 border-foreground bg-background">
+                      <span className="text-[9px] font-black tracking-[0.15em]">READY</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-4xl font-black tracking-tight" style={{ fontFamily: 'Georgia, serif' }}>
+                      {stats?.availableDocuments || 0}
+                    </div>
+                    <div className="text-xs font-bold uppercase tracking-[0.1em]">
                       Available Materials
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </motion.div>
 
               <motion.div variants={fadeInUp}>
-                <Card className="glass border-border/50 hover:glow-sm transition-all">
-                  <CardContent className="p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <Brain className="h-5 w-5 text-cyan-400" />
-                      <Badge variant="outline" className="text-xs text-cyan-400 border-cyan-400/30">
-                        Indexed
-                      </Badge>
+                <div className="feature-box">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-2 border-2 border-foreground bg-background">
+                      <Brain className="h-5 w-5 text-foreground" />
                     </div>
-                    <div className="text-2xl font-bold">{stats?.totalChunks || 0}</div>
-                    <div className="text-xs text-muted-foreground mt-1">
+                    <div className="px-2 py-1 border-2 border-foreground bg-background">
+                      <span className="text-[9px] font-black tracking-[0.15em]">INDEXED</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-4xl font-black tracking-tight" style={{ fontFamily: 'Georgia, serif' }}>
+                      {stats?.totalChunks || 0}
+                    </div>
+                    <div className="text-xs font-bold uppercase tracking-[0.1em]">
                       Knowledge Chunks
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </motion.div>
 
               <motion.div variants={fadeInUp}>
-                <Card className="glass border-border/50 hover:glow-sm transition-all">
-                  <CardContent className="p-5 flex flex-col items-center justify-center text-center">
-                    <motion.div
-                      animate={{ scale: [1, 1.1, 1] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    >
-                      <Flame className="h-8 w-8 text-orange-400 mb-2" />
-                    </motion.div>
-                    <div className="text-2xl font-bold">7</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Day Streak 🔥
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="feature-box flex flex-col items-center justify-center text-center">
+                  <motion.div
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="mb-3"
+                  >
+                    <Flame className="h-10 w-10 text-foreground" />
+                  </motion.div>
+                  <div className="text-4xl font-black mb-2" style={{ fontFamily: 'Georgia, serif' }}>7</div>
+                  <div className="text-xs font-bold uppercase tracking-[0.1em]">
+                    Day Streak
+                  </div>
+                </div>
               </motion.div>
             </div>
 
             {/* Notifications */}
             {notifications.length > 0 && (
               <motion.div variants={fadeInUp}>
-                <Card className="glass border-border/50">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Bell className="h-4 w-4 text-primary" />
-                        Notifications
-                        {unreadCount > 0 && (
-                          <Badge variant="default" className="ml-2 h-5 px-2 gradient-primary text-white border-0">
-                            {unreadCount}
-                          </Badge>
-                        )}
-                      </CardTitle>
-                      <Link href="/student/notifications">
-                        <Button variant="ghost" size="sm" className="text-xs">
-                          View All
-                        </Button>
-                      </Link>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
+                <div className="feature-box">
+                  <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-foreground">
+                    <h2 className="text-lg font-black uppercase tracking-wide flex items-center gap-2">
+                      <Bell className="h-5 w-5" />
+                      Breaking News
+                      {unreadCount > 0 && (
+                        <div className="px-2 py-1 border-2 border-foreground bg-foreground text-background">
+                          <span className="text-[9px] font-black tracking-wider">{unreadCount}</span>
+                        </div>
+                      )}
+                    </h2>
+                    <Link href="/student/notifications">
+                      <Button variant="ghost" size="sm" className="text-[10px] font-black uppercase tracking-wider hover:bg-foreground/5">
+                        ALL
+                      </Button>
+                    </Link>
+                  </div>
+                  <div className="space-y-3">
                     {notifications.map((notification) => (
                       <motion.div
                         key={notification._id}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 20 }}
-                        className={`p-3 rounded-lg border transition-all ${
+                        className={`p-3 border-2 transition-all ${
                           notification.isRead
-                            ? "bg-muted/20 border-border/30"
-                            : "bg-primary/5 border-primary/20"
+                            ? "border-foreground/20 bg-muted/20"
+                            : "border-foreground/40 bg-card"
                         }`}
                       >
                         <div className="flex items-start gap-3">
-                          <div className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                            notification.type === "document_uploaded"
-                              ? "bg-cyan-400/10"
-                              : notification.type === "document_indexed"
-                              ? "bg-emerald-400/10"
-                              : "bg-primary/10"
-                          }`}>
-                            {notification.type === "document_uploaded" && (
-                              <Upload className="h-4 w-4 text-cyan-400" />
-                            )}
-                            {notification.type === "document_indexed" && (
-                              <Check className="h-4 w-4 text-emerald-400" />
-                            )}
-                            {notification.type === "course_created" && (
-                              <BookOpen className="h-4 w-4 text-primary" />
-                            )}
+                          <div className="h-8 w-8 border-2 border-foreground flex items-center justify-center flex-shrink-0 bg-background">
+                            {notification.type === "document_uploaded" && <Upload className="h-4 w-4" />}
+                            {notification.type === "document_indexed" && <Check className="h-4 w-4" />}
+                            {notification.type === "course_created" && <BookOpen className="h-4 w-4" />}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1">
-                                <p className="text-sm font-medium">{notification.title}</p>
-                                <p className="text-xs text-muted-foreground mt-0.5">
+                                <p className="text-sm font-bold">{notification.title}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5 italic" style={{ fontFamily: 'Georgia, serif' }}>
                                   {notification.message}
                                 </p>
-                                <p className="text-xs text-muted-foreground mt-1">
+                                <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider font-semibold">
                                   {formatTimeAgo(notification.createdAt)}
                                 </p>
                               </div>
@@ -350,7 +345,7 @@ export default function StudentDashboardPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="mt-2 h-7 text-xs"
+                                className="mt-2 h-7 text-[10px] font-bold uppercase tracking-wider"
                                 onClick={() => markAsRead(notification._id)}
                               >
                                 Mark as read
@@ -360,142 +355,137 @@ export default function StudentDashboardPage() {
                         </div>
                       </motion.div>
                     ))}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </motion.div>
             )}
 
             <div className="grid lg:grid-cols-3 gap-6">
               {/* Course Materials */}
               <motion.div variants={fadeInUp} className="lg:col-span-2">
-                <Card className="glass border-border/50">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <BookOpen className="h-4 w-4 text-primary" />
-                      Your Course Materials
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {documentsByCourse.length === 0 ? (
-                      <div className="text-center py-8 text-sm text-muted-foreground">
-                        <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                        <p>No materials available yet</p>
-                        <p className="text-xs mt-1">Check back later for course content</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {documentsByCourse.map((doc, i) => (
-                          <Link href="/student/chat" key={i}>
-                            <div className="p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-all group cursor-pointer border border-transparent hover:border-primary/20">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-3">
-                                  <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: getCourseColor(doc._id) }}
-                                  />
-                                  <div>
-                                    <span className="font-medium text-sm">
-                                      {getCourseName(doc._id)}
-                                    </span>
-                                    <p className="text-xs text-muted-foreground">
-                                      {doc.count} {doc.count === 1 ? "document" : "documents"} • {doc.totalChunks} chunks
-                                    </p>
-                                  </div>
+                <div className="feature-box h-full">
+                  <div className="mb-6 pb-4 border-b-2 border-foreground">
+                    <h2 className="text-lg font-black uppercase tracking-wide flex items-center gap-2">
+                      <BookOpen className="h-5 w-5" />
+                      Course Materials
+                    </h2>
+                  </div>
+                  {documentsByCourse.length === 0 ? (
+                    <div className="text-center py-12 text-sm text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                      <p className="italic" style={{ fontFamily: 'Georgia, serif' }}>No materials available yet</p>
+                      <p className="text-xs mt-1">Check back later for course content</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {documentsByCourse.map((doc, i) => (
+                        <Link href="/student/chat" key={i}>
+                          <div className="p-4 border-2 border-foreground/20 hover:border-foreground/40 transition-all group cursor-pointer bg-card">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className="w-3 h-3 border-2 border-foreground"
+                                  style={{ backgroundColor: getCourseColor(doc._id) }}
+                                />
+                                <div>
+                                  <span className="font-black text-sm uppercase tracking-wide">
+                                    {getCourseName(doc._id)}
+                                  </span>
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                                    {doc.count} {doc.count === 1 ? "document" : "documents"} • {doc.totalChunks} chunks
+                                  </p>
                                 </div>
-                                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                               </div>
-                              <Progress 
-                                value={100} 
-                                className="h-1.5"
-                              />
+                              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                             </div>
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                            <div className="h-2 bg-muted border-2 border-foreground/20">
+                              <div className="h-full bg-foreground" style={{ width: '100%' }} />
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </motion.div>
 
               {/* Quick Actions */}
               <motion.div variants={fadeInUp}>
-                <Card className="glass border-border/50">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-amber-400" />
+                <div className="feature-box h-full">
+                  <div className="mb-6 pb-4 border-b-2 border-foreground">
+                    <h2 className="text-lg font-black uppercase tracking-wide flex items-center gap-2">
+                      <Zap className="h-5 w-5" />
                       Quick Actions
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
+                    </h2>
+                  </div>
+                  <div className="space-y-3">
                     <Link href="/student/chat">
-                      <Button variant="outline" className="w-full justify-start gap-2 hover:bg-primary/10">
+                      <Button variant="outline" className="w-full justify-start gap-2 hover:bg-foreground/5 border-2 border-foreground/30 hover:border-foreground/50 font-bold uppercase text-xs tracking-wider">
                         <MessageSquare className="h-4 w-4" />
                         Ask a Question
                       </Button>
                     </Link>
                     <Link href="/student/learn">
-                      <Button variant="outline" className="w-full justify-start gap-2 hover:bg-primary/10">
+                      <Button variant="outline" className="w-full justify-start gap-2 hover:bg-foreground/5 border-2 border-foreground/30 hover:border-foreground/50 font-bold uppercase text-xs tracking-wider">
                         <Brain className="h-4 w-4" />
                         Browse Topics
                       </Button>
                     </Link>
                     <Link href="/student/analytics">
-                      <Button variant="outline" className="w-full justify-start gap-2 hover:bg-primary/10">
+                      <Button variant="outline" className="w-full justify-start gap-2 hover:bg-foreground/5 border-2 border-foreground/30 hover:border-foreground/50 font-bold uppercase text-xs tracking-wider">
                         <TrendingUp className="h-4 w-4" />
                         View Progress
                       </Button>
                     </Link>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </motion.div>
             </div>
 
-            {/* Recent Activity & Suggestions */}
+            {/* Bottom Section */}
             <div className="grid lg:grid-cols-2 gap-6">
               <motion.div variants={fadeInUp}>
-                <Card className="glass border-border/50">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-primary" />
-                      Recently Added Materials
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {recentDocuments.length === 0 ? (
-                      <div className="text-center py-8 text-sm text-muted-foreground">
-                        No recent materials
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {recentDocuments.map((doc, i) => (
-                          <div
-                            key={i}
-                            className="p-3 rounded-lg bg-muted/30 flex items-center gap-3"
-                          >
-                            <FileText className="h-4 w-4 text-primary flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{doc.fileName}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {getCourseName(doc.courseId)} • {formatTimeAgo(doc.indexedAt)}
-                              </p>
-                            </div>
+                <div className="feature-box">
+                  <div className="mb-6 pb-4 border-b-2 border-foreground">
+                    <h2 className="text-lg font-black uppercase tracking-wide flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Recent Materials
+                    </h2>
+                  </div>
+                  {recentDocuments.length === 0 ? (
+                    <div className="text-center py-12 text-sm text-muted-foreground italic" style={{ fontFamily: 'Georgia, serif' }}>
+                      No recent materials
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {recentDocuments.map((doc, i) => (
+                        <div
+                          key={i}
+                          className="p-3 border-2 border-foreground/20 flex items-center gap-3 bg-card"
+                        >
+                          <FileText className="h-4 w-4 text-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold truncate">{doc.fileName}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                              {getCourseName(doc.courseId)} • {formatTimeAgo(doc.indexedAt)}
+                            </p>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </motion.div>
 
               <motion.div variants={fadeInUp}>
-                <Card className="glass border-border/50">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-primary" />
+                <div className="feature-box">
+                  <div className="mb-6 pb-4 border-b-2 border-foreground">
+                    <h2 className="text-lg font-black uppercase tracking-wide flex items-center gap-2">
+                      <Sparkles className="h-5 w-5" />
                       Suggested Questions
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
+                    </h2>
+                  </div>
+                  <div className="space-y-2">
                     {[
                       "Explain the key concepts from today's material",
                       "What are the main topics I should focus on?",
@@ -503,14 +493,14 @@ export default function StudentDashboardPage() {
                       "Help me understand the difficult parts",
                     ].map((q, i) => (
                       <Link href="/student/chat" key={i}>
-                        <div className="p-3 rounded-lg bg-muted/30 hover:bg-primary/10 transition-colors cursor-pointer group flex items-center gap-3">
-                          <MessageSquare className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+                        <div className="p-3 border-2 border-foreground/20 hover:border-foreground/40 transition-colors cursor-pointer group flex items-center gap-3 bg-card">
+                          <MessageSquare className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
                           <span className="text-sm">{q}</span>
                         </div>
                       </Link>
                     ))}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </motion.div>
             </div>
           </motion.div>

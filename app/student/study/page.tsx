@@ -235,11 +235,11 @@ export default function StudentStudyPage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-primary" />
+          <h1 className="text-2xl font-black uppercase tracking-wide flex items-center gap-2">
+            <Sparkles className="h-6 w-6 text-foreground" />
             Study with Your Documents
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-1 italic" style={{ fontFamily: 'Georgia, serif' }}>
             Upload your own documents and ask questions using AI
           </p>
         </motion.div>
@@ -247,14 +247,16 @@ export default function StudentStudyPage() {
         <div className="grid lg:grid-cols-4 gap-6">
           {/* Sidebar - Documents */}
           <div className="lg:col-span-1 space-y-4">
-            <Card className="glass border-border/50">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center justify-between">
-                  <span>My Documents</span>
-                  <Badge variant="outline">{indexedDocs.length}</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <div className="feature-box">
+              <div className="mb-4 pb-3 border-b-2 border-foreground">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-black uppercase tracking-wide">My Documents</h2>
+                  <div className="px-2 py-1 border-2 border-foreground bg-background">
+                    <span className="text-[9px] font-black tracking-wider">{indexedDocs.length}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4">
                 {/* Upload Button */}
                 <div>
                   <input
@@ -267,7 +269,7 @@ export default function StudentStudyPage() {
                   <Button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
-                    className="w-full gap-2"
+                    className="w-full gap-2 border-2 border-foreground hover:bg-foreground hover:text-background font-bold uppercase text-xs tracking-wider"
                     variant="outline"
                   >
                     {isUploading ? (
@@ -282,18 +284,18 @@ export default function StudentStudyPage() {
                       </>
                     )}
                   </Button>
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-xs text-muted-foreground mt-2 font-semibold">
                     PDF or TXT, max 10MB
                   </p>
                 </div>
 
                 {/* Document Filter */}
                 <div>
-                  <label className="text-xs text-muted-foreground mb-2 block">
+                  <label className="text-xs text-muted-foreground mb-2 block font-bold uppercase tracking-wider">
                     Study from:
                   </label>
                   <Select value={selectedDocument} onValueChange={setSelectedDocument}>
-                    <SelectTrigger>
+                    <SelectTrigger className="border-2 border-foreground/30">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -316,7 +318,7 @@ export default function StudentStudyPage() {
                   ) : documents.length === 0 ? (
                     <div className="text-center py-8">
                       <FileText className="h-12 w-12 mx-auto mb-2 text-muted-foreground opacity-50" />
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground italic" style={{ fontFamily: 'Georgia, serif' }}>
                         No documents yet
                       </p>
                     </div>
@@ -326,21 +328,21 @@ export default function StudentStudyPage() {
                         {documents.map((doc) => (
                           <div
                             key={doc._id}
-                            className="p-3 rounded-lg bg-muted/30 border border-border/50"
+                            className="p-3 border-2 border-foreground/20 bg-card"
                           >
                             <div className="flex items-start justify-between gap-2 mb-2">
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium truncate">
+                                <p className="text-xs font-bold truncate">
                                   {doc.fileName}
                                 </p>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs text-muted-foreground font-semibold">
                                   {formatFileSize(doc.fileSize)}
                                 </p>
                               </div>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-6 w-6 flex-shrink-0"
+                                className="h-6 w-6 flex-shrink-0 border border-foreground/30 hover:border-foreground/50 hover:bg-foreground/5"
                                 onClick={() => handleDeleteDocument(doc._id)}
                               >
                                 <Trash2 className="h-3 w-3" />
@@ -349,35 +351,26 @@ export default function StudentStudyPage() {
                             <div className="flex items-center gap-2">
                               {doc.status === "indexed" && (
                                 <>
-                                  <CheckCircle2 className="h-3 w-3 text-emerald-400" />
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs text-emerald-400 border-emerald-400/30"
-                                  >
-                                    Ready
-                                  </Badge>
+                                  <CheckCircle2 className="h-3 w-3 text-foreground" />
+                                  <div className="px-2 py-1 border border-foreground/30 bg-background">
+                                    <span className="text-[9px] font-bold tracking-wider">Ready</span>
+                                  </div>
                                 </>
                               )}
                               {doc.status === "processing" && (
                                 <>
-                                  <Loader2 className="h-3 w-3 text-amber-400 animate-spin" />
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs text-amber-400 border-amber-400/30"
-                                  >
-                                    Processing
-                                  </Badge>
+                                  <Loader2 className="h-3 w-3 text-foreground animate-spin" />
+                                  <div className="px-2 py-1 border border-foreground/30 bg-background">
+                                    <span className="text-[9px] font-bold tracking-wider">Processing</span>
+                                  </div>
                                 </>
                               )}
                               {doc.status === "failed" && (
                                 <>
-                                  <AlertCircle className="h-3 w-3 text-red-400" />
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs text-red-400 border-red-400/30"
-                                  >
-                                    Failed
-                                  </Badge>
+                                  <AlertCircle className="h-3 w-3 text-foreground" />
+                                  <div className="px-2 py-1 border border-red-400/30 bg-background">
+                                    <span className="text-[9px] font-bold tracking-wider">Failed</span>
+                                  </div>
                                 </>
                               )}
                             </div>
@@ -389,40 +382,42 @@ export default function StudentStudyPage() {
                 </div>
 
                 {processingDocs.length > 0 && (
-                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                    <p className="text-xs text-amber-400">
+                  <div className="p-3 border-2 border-foreground/30 bg-card">
+                    <p className="text-xs text-foreground font-bold">
                       {processingDocs.length} document(s) processing...
                     </p>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
           {/* Main Chat Area */}
           <div className="lg:col-span-3">
-            <Card className="glass border-border/50 h-[calc(100vh-200px)]">
-              <CardHeader className="border-b border-border/50">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5 text-primary" />
-                  Study Session
+            <div className="feature-box h-[calc(100vh-200px)]">
+              <div className="mb-4 pb-3 border-b-2 border-foreground">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-foreground" />
+                  <h2 className="text-base font-black uppercase tracking-wide">Study Session</h2>
                   {selectedDocument !== "all" && (
-                    <Badge variant="outline" className="ml-auto">
-                      Focused: {documents.find(d => d._id === selectedDocument)?.fileName}
-                    </Badge>
+                    <div className="ml-auto px-2 py-1 border border-foreground/30 bg-background">
+                      <span className="text-[9px] font-bold tracking-wider">
+                        Focused: {documents.find(d => d._id === selectedDocument)?.fileName}
+                      </span>
+                    </div>
                   )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0 flex flex-col h-[calc(100%-80px)]">
+                </div>
+              </div>
+              <div className="flex flex-col h-[calc(100%-80px)]">
                 {/* Messages */}
                 <ScrollArea className="flex-1 p-6">
                   {messages.length === 0 ? (
                     <div className="text-center py-12">
                       <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                      <h3 className="text-lg font-semibold mb-2">
+                      <h3 className="text-lg font-black mb-2 uppercase tracking-wide">
                         Start Studying
                       </h3>
-                      <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                      <p className="text-sm text-muted-foreground max-w-md mx-auto italic" style={{ fontFamily: 'Georgia, serif' }}>
                         Upload your documents and ask questions. I'll help you understand the material better!
                       </p>
                     </div>
@@ -439,25 +434,25 @@ export default function StudentStudyPage() {
                             }`}
                           >
                             <div
-                              className={`max-w-[80%] rounded-lg p-4 ${
+                              className={`max-w-[80%] p-4 border-2 ${
                                 msg.role === "user"
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted/50 border border-border/50"
+                                  ? "bg-foreground text-background border-foreground"
+                                  : "bg-card border-foreground/30"
                               }`}
                             >
                               <p className="text-sm whitespace-pre-wrap">
                                 {msg.content}
                               </p>
                               {msg.sources && msg.sources.length > 0 && (
-                                <div className="mt-3 pt-3 border-t border-border/30">
-                                  <p className="text-xs font-medium mb-2">
+                                <div className="mt-3 pt-3 border-t-2 border-foreground/20">
+                                  <p className="text-xs font-bold mb-2 uppercase tracking-wider">
                                     Sources:
                                   </p>
                                   <div className="space-y-1">
                                     {msg.sources.map((source, i) => (
                                       <div
                                         key={i}
-                                        className="text-xs text-muted-foreground"
+                                        className="text-xs text-muted-foreground font-semibold"
                                       >
                                         [{source.sourceNumber}] {source.fileName}
                                       </div>
@@ -475,8 +470,8 @@ export default function StudentStudyPage() {
                           animate={{ opacity: 1 }}
                           className="flex justify-start"
                         >
-                          <div className="bg-muted/50 border border-border/50 rounded-lg p-4">
-                            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                          <div className="bg-card border-2 border-foreground/30 p-4">
+                            <Loader2 className="h-5 w-5 animate-spin text-foreground" />
                           </div>
                         </motion.div>
                       )}
@@ -486,7 +481,7 @@ export default function StudentStudyPage() {
                 </ScrollArea>
 
                 {/* Input */}
-                <div className="p-4 border-t border-border/50">
+                <div className="p-4 border-t-2 border-foreground">
                   <div className="flex gap-2">
                     <Textarea
                       value={input}
@@ -503,23 +498,23 @@ export default function StudentStudyPage() {
                           : "Ask a question about your documents..."
                       }
                       disabled={isLoading || indexedDocs.length === 0}
-                      className="min-h-[60px] resize-none"
+                      className="min-h-[60px] resize-none border-2 border-foreground/30"
                     />
                     <Button
                       onClick={handleSendMessage}
                       disabled={isLoading || !input.trim() || indexedDocs.length === 0}
                       size="icon"
-                      className="h-[60px] w-[60px]"
+                      className="h-[60px] w-[60px] bg-foreground text-background hover:bg-foreground/90 border-2 border-foreground"
                     >
                       <Send className="h-5 w-5" />
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-xs text-muted-foreground mt-2 italic" style={{ fontFamily: 'Georgia, serif' }}>
                     Press Enter to send, Shift+Enter for new line
                   </p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>

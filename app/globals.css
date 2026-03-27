@@ -47,39 +47,39 @@
 }
 
 :root {
-  --background: #FFF8F0;
-  --foreground: #000000;
-  --card: #FEFAF5;
-  --card-foreground: #000000;
-  --popover: #FEFAF5;
-  --popover-foreground: #000000;
-  --primary: #000000;
-  --primary-foreground: #FFF8F0;
-  --secondary: #F5EFE7;
-  --secondary-foreground: #000000;
-  --muted: #F5EFE7;
-  --muted-foreground: rgba(0, 0, 0, 0.6);
-  --accent: #EDE4D9;
-  --accent-foreground: #000000;
-  --destructive: #DC2626;
-  --destructive-foreground: #FFF8F0;
-  --border: rgba(0, 0, 0, 0.1);
-  --input: rgba(0, 0, 0, 0.15);
-  --ring: rgba(0, 0, 0, 0.2);
-  --chart-1: #F59E0B;
-  --chart-2: #10B981;
-  --chart-3: #3B82F6;
-  --chart-4: #8B5CF6;
-  --chart-5: #EC4899;
-  --radius: 0.625rem;
-  --sidebar: #F5EFE7;
-  --sidebar-foreground: #000000;
-  --sidebar-primary: #000000;
-  --sidebar-primary-foreground: #FFF8F0;
-  --sidebar-accent: #EDE4D9;
-  --sidebar-accent-foreground: #000000;
-  --sidebar-border: rgba(0, 0, 0, 0.1);
-  --sidebar-ring: rgba(0, 0, 0, 0.2);
+  --background: #E8E3D8;
+  --foreground: #1a1614;
+  --card: #F5F1E8;
+  --card-foreground: #1a1614;
+  --popover: #F5F1E8;
+  --popover-foreground: #1a1614;
+  --primary: #1a1614;
+  --primary-foreground: #F5F1E8;
+  --secondary: #D4CFC4;
+  --secondary-foreground: #1a1614;
+  --muted: #D4CFC4;
+  --muted-foreground: rgba(26, 22, 20, 0.65);
+  --accent: #C4BFB4;
+  --accent-foreground: #1a1614;
+  --destructive: #8B0000;
+  --destructive-foreground: #F5F1E8;
+  --border: rgba(26, 22, 20, 0.2);
+  --input: rgba(26, 22, 20, 0.15);
+  --ring: rgba(26, 22, 20, 0.3);
+  --chart-1: #8B4513;
+  --chart-2: #2F4F4F;
+  --chart-3: #4682B4;
+  --chart-4: #6B4423;
+  --chart-5: #8B0000;
+  --radius: 0rem;
+  --sidebar: #D4CFC4;
+  --sidebar-foreground: #1a1614;
+  --sidebar-primary: #1a1614;
+  --sidebar-primary-foreground: #F5F1E8;
+  --sidebar-accent: #C4BFB4;
+  --sidebar-accent-foreground: #1a1614;
+  --sidebar-border: rgba(26, 22, 20, 0.2);
+  --sidebar-ring: rgba(26, 22, 20, 0.3);
 }
 
 .dark {
@@ -123,10 +123,18 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Georgia', 'Times New Roman', serif;
   }
   html {
     @apply font-sans;
     scroll-behavior: smooth;
+  }
+  
+  /* Newspaper typography */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
   
   /* Ensure all cards and surfaces use cream tones */
@@ -136,6 +144,8 @@
   [class*="sheet"] {
     background-color: var(--card);
     color: var(--card-foreground);
+    border: 3px solid #1a1614;
+    border-radius: 0;
   }
 }
 
@@ -264,17 +274,63 @@
   }
 }
 
-/* Glassmorphism */
+/* Newspaper style */
 .glass {
-  background: rgba(255, 248, 240, 0.5);
-  backdrop-filter: blur(20px) saturate(1.8);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #F5F1E8;
+  border: 3px solid #1a1614;
+  box-shadow: none;
+  border-radius: 0;
 }
 
 .glass-strong {
-  background: rgba(255, 248, 240, 0.7);
-  backdrop-filter: blur(40px) saturate(2);
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #F5F1E8;
+  border: 4px solid #1a1614;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.newspaper-card {
+  background: #F5F1E8;
+  border: 3px solid #1a1614;
+  box-shadow: none;
+  position: relative;
+  border-radius: 0;
+}
+
+.newspaper-card::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  border: 1px solid rgba(26, 22, 20, 0.15);
+  pointer-events: none;
+}
+
+.newspaper-card-inner {
+  border: 1px solid rgba(26, 22, 20, 0.15);
+  margin: 8px;
+  padding: 16px;
+}
+
+.feature-box {
+  background: #F5F1E8;
+  border: 3px solid #1a1614;
+  padding: 24px;
+  position: relative;
+  border-radius: 0;
+}
+
+.feature-box::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  border: 1px solid rgba(26, 22, 20, 0.2);
+  pointer-events: none;
 }
 
 /* Gradient Mesh Background */
@@ -288,14 +344,24 @@
 
 /* Primary gradient */
 .gradient-primary {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.8));
+  background: #1a1a1a;
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.7));
+  background: #1a1a1a;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.newspaper-header {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-top: 3px solid #1a1a1a;
+  border-bottom: 3px solid #1a1a1a;
+  padding: 0.5rem 0;
 }
 
 /* Glow effects */
