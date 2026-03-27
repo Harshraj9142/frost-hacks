@@ -274,3 +274,85 @@ export function generateCitationReport(citations: Citation[]): string {
   
   return report.join('\n');
 }
+
+/**
+ * Validate that AI response properly cites sources
+ */
+export function validateResponseCitations(
+  response: string,
+  availableSources: number
+): {
+  hasCitations: boolean;
+  citationCount: number;
+  sourcesReferenced: number[];
+  allSourcesCited: boolean;
+  citationDensity: number;
+  quality: 'excellent' | 'good' | 'poor' | 'none';
+  issues: string[];
+} {
+  const issues: string[] = [];
+  
+  // Extract citation patterns: [Source 1], [Source 2, 3], etc.
+  const citationPattern = /\[Source\s+(\d+(?:\s*,\s*\d+)*)\]/gi;
+  const matches = response.matchAll(citationPattern);
+  
+  const citationsFound = Array.from(matches);
+  const citationCount = citationsFound.length;
+  
+  // Extract unique source numbers referenced
+  const sourcesReferenced = new Set<number>();
+  citationsFound.forEach(match => {
+    const sourceNums = match[1].split(',').map(n => parseInt(n.trim()));
+    sourceNums.forEach(num => sourcesReferenced.add(num));
+  });
+  
+  const uniqueSourcesReferenced = Array.from(sourcesReferenced).sort((a, b) => a - b);
+  
+  // Check if all available sources are cited
+  const allSourcesCited = uniqueSourcesReferenced.length === availableSources;
+  
+  // Calculate citation density (citations per 100 words)
+  const wordCount = response.split(/\s+/).length;
+  const citationDensity = (citationCount / wordCount) * 100;
+  
+  // Validate citation quality
+  if (citationCount === 0) {
+    issues.push('No citations found in response');
+  }
+  
+  if (citationDensity < 1 && wordCount > 50) {
+    issues.push('Low citation density - add more source references');
+  }
+  
+  if (uniqueSourcesReferenced.length < availableSources / 2) {
+    issues.push(`Only ${uniqueSourcesReferenced.length}/${availableSources} sources cited`);
+  }
+  
+  // Check for invalid source numbers
+  const invalidSources = uniqueSourcesReferenced.filter(num => num < 1 || num > availableSources);
+  if (invalidSources.length > 0) {
+    issues.push(`Invalid source numbers: ${invalidSources.join(', ')}`);
+  }
+  
+  // Determine quality
+  let quality: 'excellent' | 'good' | 'poor' | 'none';
+  if (citationCount === 0) {
+    quality = 'none';
+  } else if (citationDensity >= 2 && allSourcesCited) {
+    quality = 'excellent';
+  } else if (citationDensity >= 1 && uniqueSourcesReferenced.length >= availableSources / 2) {
+    quality = 'good';
+  } else {
+    quality = 'poor';
+  }
+  
+  return {
+    hasCitations: citationCount > 0,
+    citationCount,
+    sourcesReferenced: uniqueSourcesReferenced,
+    allSourcesCited,
+    citationDensity: parseFloat(citationDensity.toFixed(2)),
+    quality,
+    issues,
+  };
+}

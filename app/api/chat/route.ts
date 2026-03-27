@@ -9,6 +9,7 @@ import {
   formatInlineCitation,
   formatBibliographyCitation,
   generateCitationReport,
+  validateResponseCitations,
   type Citation,
 } from "@/lib/citations";
 import connectDB from "@/lib/mongodb";
@@ -343,17 +344,33 @@ CRITICAL RULES FOR SOCRATIC MODE:
 
     const systemPrompt = tutorMode === "guided" ? socraticModePrompt : directModePrompt;
 
-    // Add context to the system prompt
+    // Add context to the system prompt with citation instructions
     const fullSystemPrompt = `${systemPrompt}
 
 CONTEXT FROM COURSE MATERIALS:
 ${context}
+
+CRITICAL CITATION REQUIREMENTS:
+1. ALWAYS reference sources using [Source X] notation when stating facts
+2. Use inline citations like: "Binary search is efficient [Source 1]"
+3. Multiple sources: "This concept is fundamental [Source 1, 2]"
+4. Direct quotes: "According to Source 1, 'exact quote here'"
+5. Every factual claim MUST have a citation
+6. If information spans multiple sources, cite all relevant ones
+
+CITATION EXAMPLES:
+✓ "The algorithm has O(log n) complexity [Source 1]"
+✓ "According to Source 2, this approach is widely used in practice"
+✓ "Research shows [Source 1, 3] that this method is effective"
+✗ "This is a common approach" (missing citation)
+✗ "Studies show..." (vague, no source)
 
 CRITICAL REMINDER:
 - Stay within the bounds of the provided context
 - If asked about something not in context, redirect to what IS available
 - Accuracy over completeness - it's better to say "I don't know" than to guess
 - Your credibility depends on being truthful about what the materials contain
+- EVERY fact needs a [Source X] citation
 
 Remember: Your goal is to help students ${tutorMode === "guided" ? "DISCOVER" : "LEARN"} from the ACTUAL course materials, not from your general knowledge.`;
 
@@ -396,7 +413,7 @@ Remember: Your goal is to help students ${tutorMode === "guided" ? "DISCOVER" : 
       ...modelParams,
     });
 
-    const response = completion.choices[0].message.content;
+    let response = completion.choices[0].message.content;
 
     console.log("AI Response generated:", {
       responseLength: response?.length,
@@ -404,6 +421,10 @@ Remember: Your goal is to help students ${tutorMode === "guided" ? "DISCOVER" : 
       sourcesUsed: highQualityDocs.length,
       temperature: modelParams.temperature,
     });
+
+    // Validate and enhance citations in response
+    const citationValidation = validateResponseCitations(response || "", highQualityDocs.length);
+    console.log("Citation validation:", citationValidation);
 
     // Analyze response quality based on mode
     const hasQuestions = (response?.match(/\?/g) || []).length;
@@ -452,6 +473,14 @@ Remember: Your goal is to help students ${tutorMode === "guided" ? "DISCOVER" : 
       sources,
       citations: structuredResponse.citations,
       citationMetadata: structuredResponse.metadata,
+      citationValidation: {
+        hasCitations: citationValidation.citationCount > 0,
+        citationCount: citationValidation.citationCount,
+        sourcesReferenced: citationValidation.sourcesReferenced,
+        allSourcesCited: citationValidation.allSourcesCited,
+        citationDensity: citationValidation.citationDensity,
+        quality: citationValidation.quality,
+      },
       metadata: {
         relevantDocsCount: highQualityDocs.length,
         totalDocsSearched: relevantDocs.length,
