@@ -21,7 +21,6 @@ import {
   Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useCourseStore } from "@/lib/store";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -30,6 +29,7 @@ interface DashboardStats {
   enrolledCourses: number;
   availableDocuments: number;
   totalChunks: number;
+  studyStreak: number;
 }
 
 interface DocumentByCourse {
@@ -276,7 +276,9 @@ export default function StudentDashboardPage() {
                   >
                     <Flame className="h-10 w-10 text-foreground" />
                   </motion.div>
-                  <div className="text-4xl font-black mb-2" style={{ fontFamily: 'Georgia, serif' }}>7</div>
+                  <div className="text-4xl font-black mb-2" style={{ fontFamily: 'Georgia, serif' }}>
+                    {stats?.studyStreak || 0}
+                  </div>
                   <div className="text-xs font-bold uppercase tracking-[0.1em]">
                     Day Streak
                   </div>
