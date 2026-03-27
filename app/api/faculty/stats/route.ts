@@ -44,14 +44,9 @@ export async function GET() {
       status: "failed",
     });
 
-    // Get total students enrolled in faculty courses
-    // Check both string and ObjectId formats for compatibility
+    // Get total students
     const totalStudents = await User.countDocuments({
       role: "student",
-      $or: [
-        { courses: { $in: courseIds } },
-        { courses: { $in: courseObjectIds } }
-      ]
     });
 
     // Get active students (queried in last 7 days)
