@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  TrendingUp,
-  TrendingDown,
   AlertTriangle,
   Users,
   MessageSquare,
@@ -15,6 +13,7 @@ import {
   PieChart,
   Activity,
   Filter,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,13 +21,17 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCourseStore } from "@/lib/store";
+import { CourseLoader } from "@/components/course-loader";
+import { toast } from "sonner";
 
 export default function AnalyticsPage() {
   const [selectedCourse, setSelectedCourse] = useState<string>("");
   const [timeRange, setTimeRange] = useState<string>("7d");
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const courses = useCourseStore((s) => s.courses);
+  const isLoadingCourses = useCourseStore((s) => s.isLoading);
 
   useEffect(() => {
     if (courses.length > 0 && !selectedCourse) {
@@ -44,6 +47,7 @@ export default function AnalyticsPage() {
 
   const fetchAnalytics = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch(
         `/api/faculty/analytics?courseId=${selectedCourse}&timeRange=${timeRange}`
@@ -51,25 +55,61 @@ export default function AnalyticsPage() {
       if (res.ok) {
         const data = await res.json();
         setAnalytics(data);
+      } else {
+        const errorData = await res.json();
+        setError(errorData.error || "Failed to fetch analytics");
+        toast.error(errorData.error || "Failed to fetch analytics");
       }
     } catch (error) {
       console.error("Failed to fetch analytics:", error);
+      setError("Network error. Please try again.");
+      toast.error("Failed to fetch analytics");
     } finally {
       setLoading(false);
     }
   };
 
-  if (!selectedCourse) {
+  // Show loading state while courses are being fetched
+  if (isLoadingCourses) {
     return (
-      <div className="p-8 text-center">
-        <p className="text-muted-foreground">Select a course to view analytics</p>
-      </div>
+      <>
+        <CourseLoader />
+        <div className="min-h-screen pt-14 p-8 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading courses...</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Show empty state if no courses
+  if (courses.length === 0) {
+    return (
+      <>
+        <CourseLoader />
+        <div className="min-h-screen pt-14 p-8 flex items-center justify-center">
+          <div className="text-center max-w-md">
+            <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="text-xl font-bold mb-2">No Courses Yet</h2>
+            <p className="text-muted-foreground mb-4">
+              Create a course first to view analytics data
+            </p>
+            <Button onClick={() => window.location.href = "/faculty/courses"}>
+              Go to Courses
+            </Button>
+          </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen pt-14 p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <>
+      <CourseLoader />
+      <div className="min-h-screen pt-14 p-8">
+        <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -111,8 +151,15 @@ export default function AnalyticsPage() {
 
         {loading ? (
           <div className="text-center py-20">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-            <p className="text-muted-foreground mt-4">Loading analytics...</p>
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading analytics...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-20">
+            <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-amber-500" />
+            <h3 className="text-lg font-semibold mb-2">Failed to Load Analytics</h3>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={fetchAnalytics}>Retry</Button>
           </div>
         ) : analytics ? (
           <>
@@ -122,29 +169,21 @@ export default function AnalyticsPage() {
                 icon={MessageSquare}
                 label="Total Queries"
                 value={analytics.overallStats.totalQueries}
-                change="+12%"
-                trend="up"
               />
               <StatCard
                 icon={Users}
                 label="Active Students"
                 value={analytics.overallStats.uniqueStudents}
-                change="+5%"
-                trend="up"
               />
               <StatCard
                 icon={Target}
                 label="Avg Accuracy"
                 value={`${(analytics.overallStats.avgScore * 100).toFixed(1)}%`}
-                change="-2%"
-                trend="down"
               />
               <StatCard
                 icon={Clock}
                 label="Avg Response Time"
                 value={`${(analytics.overallStats.avgResponseTime / 1000).toFixed(1)}s`}
-                change="+0.3s"
-                trend="down"
               />
             </div>
 
@@ -181,11 +220,19 @@ export default function AnalyticsPage() {
           </>
         ) : (
           <div className="text-center py-20">
-            <p className="text-muted-foreground">No analytics data available</p>
+            <Activity className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No Data Available</h3>
+            <p className="text-muted-foreground mb-4">
+              No student queries recorded yet for this course
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Analytics will appear once students start using the chat feature
+            </p>
           </div>
         )}
       </div>
     </div>
+    </>
   );
 }
 
@@ -194,27 +241,15 @@ function StatCard({
   icon: Icon,
   label,
   value,
-  change,
-  trend,
 }: {
   icon: any;
   label: string;
   value: string | number;
-  change: string;
-  trend: "up" | "down";
 }) {
   return (
     <Card className="feature-box p-6">
       <div className="flex items-center justify-between">
         <Icon className="h-6 w-6" />
-        <div className="flex items-center gap-1 text-sm">
-          {trend === "up" ? (
-            <TrendingUp className="h-4 w-4" />
-          ) : (
-            <TrendingDown className="h-4 w-4" />
-          )}
-          {change}
-        </div>
       </div>
       <div className="mt-4">
         <p className="text-2xl font-bold font-serif">{value}</p>

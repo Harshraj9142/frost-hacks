@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import connectDB from "@/lib/mongodb";
-import mongoose from "mongoose";
+import QueryLog from "@/models/QueryLog";
 
 export async function GET(req: NextRequest) {
   try {
@@ -30,29 +30,11 @@ export async function GET(req: NextRequest) {
     const days = daysMap[timeRange] || 7;
     const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
-    // Create QueryLog collection if it doesn't exist
-    const QueryLog = mongoose.models.QueryLog || mongoose.model("QueryLog", new mongoose.Schema({
-      courseId: String,
-      studentId: String,
-      studentName: String,
-      question: String,
-      response: String,
-      isOutOfScope: Boolean,
-      lowRelevance: Boolean,
-      bestScore: Number,
-      sourcesCount: Number,
-      responseTime: Number,
-      topics: [String],
-      difficulty: String,
-      tutorMode: String,
-      timestamp: { type: Date, default: Date.now },
-    }));
-
     // Fetch query logs
     const queryLogs = await QueryLog.find({
       courseId,
-      timestamp: { $gte: startDate },
-    }).sort({ timestamp: -1 });
+      createdAt: { $gte: startDate },
+    }).sort({ createdAt: -1 });
 
     // 1. Topic-wise Analysis
     const topicAnalysis = analyzeTopics(queryLogs);
@@ -95,33 +77,32 @@ export async function GET(req: NextRequest) {
 function analyzeTopics(logs: any[]) {
   const topicMap = new Map<string, {
     count: number;
-    avgScore: number;
-    outOfScopeCount: number;
-    lowRelevanceCount: number;
     avgResponseTime: number;
-    scores: number[];
+    satisfactionRate: number;
+    satisfiedCount: number;
+    totalSatisfied: number;
   }>();
 
   logs.forEach(log => {
-    const topics = extractTopics(log.question);
+    const topics = extractTopics(log.query);
     topics.forEach(topic => {
       if (!topicMap.has(topic)) {
         topicMap.set(topic, {
           count: 0,
-          avgScore: 0,
-          outOfScopeCount: 0,
-          lowRelevanceCount: 0,
           avgResponseTime: 0,
-          scores: [],
+          satisfactionRate: 0,
+          satisfiedCount: 0,
+          totalSatisfied: 0,
         });
       }
 
       const data = topicMap.get(topic)!;
       data.count++;
-      data.scores.push(log.bestScore || 0);
-      if (log.isOutOfScope) data.outOfScopeCount++;
-      if (log.lowRelevance) data.lowRelevanceCount++;
       data.avgResponseTime += log.responseTime || 0;
+      if (log.satisfied === true) {
+        data.satisfiedCount++;
+        data.totalSatisfied++;
+      }
     });
   });
 
@@ -129,11 +110,12 @@ function analyzeTopics(logs: any[]) {
   const topics = Array.from(topicMap.entries()).map(([topic, data]) => ({
     topic,
     count: data.count,
-    avgScore: data.scores.reduce((a, b) => a + b, 0) / data.scores.length,
-    outOfScopeRate: (data.outOfScopeCount / data.count) * 100,
-    lowRelevanceRate: (data.lowRelevanceCount / data.count) * 100,
     avgResponseTime: data.avgResponseTime / data.count,
+    satisfactionRate: (data.satisfiedCount / data.count) * 100,
     confusionLevel: calculateConfusionLevel(data),
+    outOfScopeRate: 0, // Not available in current schema
+    lowRelevanceRate: 0, // Not available in current schema
+    avgScore: data.satisfactionRate / 100, // Use satisfaction as proxy
   }));
 
   return topics.sort((a, b) => b.count - a.count);
@@ -143,49 +125,46 @@ function analyzeTopics(logs: any[]) {
 function identifyWeakConcepts(logs: any[]) {
   const conceptMap = new Map<string, {
     attempts: number;
-    lowScores: number;
-    outOfScope: number;
-    avgScore: number;
-    scores: number[];
+    unsatisfiedCount: number;
+    avgResponseTime: number;
+    responseTimes: number[];
   }>();
 
   logs.forEach(log => {
-    const concepts = extractConcepts(log.question);
+    const concepts = extractConcepts(log.query);
     concepts.forEach(concept => {
       if (!conceptMap.has(concept)) {
         conceptMap.set(concept, {
           attempts: 0,
-          lowScores: 0,
-          outOfScope: 0,
-          avgScore: 0,
-          scores: [],
+          unsatisfiedCount: 0,
+          avgResponseTime: 0,
+          responseTimes: [],
         });
       }
 
       const data = conceptMap.get(concept)!;
       data.attempts++;
-      data.scores.push(log.bestScore || 0);
-      if (log.bestScore < 0.60) data.lowScores++;
-      if (log.isOutOfScope) data.outOfScope++;
+      data.responseTimes.push(log.responseTime || 0);
+      if (log.satisfied === false) data.unsatisfiedCount++;
     });
   });
 
   // Calculate weakness score
   const concepts = Array.from(conceptMap.entries()).map(([concept, data]) => {
-    const avgScore = data.scores.reduce((a, b) => a + b, 0) / data.scores.length;
-    const lowScoreRate = (data.lowScores / data.attempts) * 100;
-    const outOfScopeRate = (data.outOfScope / data.attempts) * 100;
+    const avgResponseTime = data.responseTimes.reduce((a, b) => a + b, 0) / data.responseTimes.length;
+    const unsatisfiedRate = (data.unsatisfiedCount / data.attempts) * 100;
+    const satisfactionRate = 100 - unsatisfiedRate;
     
     // Weakness score: higher = weaker concept
-    const weaknessScore = (lowScoreRate * 0.5) + (outOfScopeRate * 0.3) + ((1 - avgScore) * 100 * 0.2);
+    const weaknessScore = (unsatisfiedRate * 0.7) + ((avgResponseTime / 10000) * 30); // Normalize response time
 
     return {
       concept,
       attempts: data.attempts,
-      avgScore,
-      lowScoreRate,
-      outOfScopeRate,
-      weaknessScore,
+      avgScore: satisfactionRate / 100,
+      lowScoreRate: unsatisfiedRate,
+      outOfScopeRate: 0, // Not available
+      weaknessScore: Math.min(weaknessScore, 100),
       severity: weaknessScore > 50 ? 'high' : weaknessScore > 30 ? 'medium' : 'low',
     };
   });
@@ -199,12 +178,12 @@ function identifyWeakConcepts(logs: any[]) {
 // Cluster topics
 function clusterTopics(logs: any[]) {
   const clusters = {
-    algorithms: { topics: [], count: 0, avgScore: 0 },
-    dataStructures: { topics: [], count: 0, avgScore: 0 },
-    complexity: { topics: [], count: 0, avgScore: 0 },
-    implementation: { topics: [], count: 0, avgScore: 0 },
-    theory: { topics: [], count: 0, avgScore: 0 },
-    other: { topics: [], count: 0, avgScore: 0 },
+    algorithms: { topics: [], count: 0, avgSatisfaction: 0 },
+    dataStructures: { topics: [], count: 0, avgSatisfaction: 0 },
+    complexity: { topics: [], count: 0, avgSatisfaction: 0 },
+    implementation: { topics: [], count: 0, avgSatisfaction: 0 },
+    theory: { topics: [], count: 0, avgSatisfaction: 0 },
+    other: { topics: [], count: 0, avgSatisfaction: 0 },
   };
 
   const clusterKeywords: Record<string, string[]> = {
@@ -216,15 +195,15 @@ function clusterTopics(logs: any[]) {
   };
 
   logs.forEach(log => {
-    const question = log.question.toLowerCase();
+    const question = log.query.toLowerCase();
     let assigned = false;
 
     for (const [cluster, keywords] of Object.entries(clusterKeywords)) {
       if (keywords.some(kw => question.includes(kw))) {
         (clusters as any)[cluster].count++;
-        (clusters as any)[cluster].avgScore += log.bestScore || 0;
-        if (!(clusters as any)[cluster].topics.includes(log.question)) {
-          (clusters as any)[cluster].topics.push(log.question);
+        (clusters as any)[cluster].avgSatisfaction += log.satisfied === true ? 1 : 0;
+        if (!(clusters as any)[cluster].topics.includes(log.query)) {
+          (clusters as any)[cluster].topics.push(log.query);
         }
         assigned = true;
         break;
@@ -233,8 +212,8 @@ function clusterTopics(logs: any[]) {
 
     if (!assigned) {
       clusters.other.count++;
-      clusters.other.avgScore += log.bestScore || 0;
-      clusters.other.topics.push(log.question);
+      clusters.other.avgSatisfaction += log.satisfied === true ? 1 : 0;
+      clusters.other.topics.push(log.query);
     }
   });
 
@@ -242,7 +221,7 @@ function clusterTopics(logs: any[]) {
   Object.keys(clusters).forEach(key => {
     const cluster = (clusters as any)[key];
     if (cluster.count > 0) {
-      cluster.avgScore = cluster.avgScore / cluster.count;
+      cluster.avgScore = cluster.avgSatisfaction / cluster.count;
       cluster.topics = cluster.topics.slice(0, 5); // Top 5 topics per cluster
     }
   });
@@ -253,13 +232,10 @@ function clusterTopics(logs: any[]) {
 // Track student queries
 function trackStudents(logs: any[]) {
   const studentMap = new Map<string, {
-    name: string;
     queryCount: number;
-    avgScore: number;
-    outOfScopeCount: number;
+    satisfiedCount: number;
     topics: Set<string>;
     lastQuery: Date;
-    scores: number[];
     weakTopics: string[];
   }>();
 
@@ -268,31 +244,27 @@ function trackStudents(logs: any[]) {
 
     if (!studentMap.has(log.studentId)) {
       studentMap.set(log.studentId, {
-        name: log.studentName || 'Unknown',
         queryCount: 0,
-        avgScore: 0,
-        outOfScopeCount: 0,
+        satisfiedCount: 0,
         topics: new Set(),
-        lastQuery: log.timestamp,
-        scores: [],
+        lastQuery: log.createdAt,
         weakTopics: [],
       });
     }
 
     const data = studentMap.get(log.studentId)!;
     data.queryCount++;
-    data.scores.push(log.bestScore || 0);
-    if (log.isOutOfScope) data.outOfScopeCount++;
+    if (log.satisfied === true) data.satisfiedCount++;
     
-    const topics = extractTopics(log.question);
+    const topics = extractTopics(log.query);
     topics.forEach(t => data.topics.add(t));
     
-    if (log.timestamp > data.lastQuery) {
-      data.lastQuery = log.timestamp;
+    if (log.createdAt > data.lastQuery) {
+      data.lastQuery = log.createdAt;
     }
 
-    // Track weak topics (low scores)
-    if (log.bestScore < 0.60) {
+    // Track weak topics (unsatisfied queries)
+    if (log.satisfied === false) {
       topics.forEach(t => {
         if (!data.weakTopics.includes(t)) {
           data.weakTopics.push(t);
@@ -304,10 +276,10 @@ function trackStudents(logs: any[]) {
   // Calculate averages and format
   const students = Array.from(studentMap.entries()).map(([id, data]) => ({
     studentId: id,
-    studentName: data.name,
+    studentName: `Student ${id.substring(0, 8)}`, // Anonymous
     queryCount: data.queryCount,
-    avgScore: data.scores.reduce((a, b) => a + b, 0) / data.scores.length,
-    outOfScopeRate: (data.outOfScopeCount / data.queryCount) * 100,
+    avgScore: data.satisfiedCount / data.queryCount,
+    outOfScopeRate: 0, // Not available
     topicsExplored: data.topics.size,
     weakTopics: data.weakTopics.slice(0, 5),
     lastQuery: data.lastQuery,
@@ -320,27 +292,27 @@ function trackStudents(logs: any[]) {
 // Calculate overall statistics
 function calculateOverallStats(logs: any[]) {
   const total = logs.length;
-  const inScope = logs.filter(l => !l.isOutOfScope).length;
-  const outOfScope = logs.filter(l => l.isOutOfScope).length;
-  const lowRelevance = logs.filter(l => l.lowRelevance).length;
+  const satisfied = logs.filter(l => l.satisfied === true).length;
+  const unsatisfied = logs.filter(l => l.satisfied === false).length;
 
-  const scores = logs.map(l => l.bestScore || 0).filter(s => s > 0);
-  const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+  const satisfactionRate = total > 0 ? (satisfied / total) * 100 : 0;
 
   const responseTimes = logs.map(l => l.responseTime || 0).filter(t => t > 0);
-  const avgResponseTime = responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length;
+  const avgResponseTime = responseTimes.length > 0 
+    ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length 
+    : 0;
 
   return {
     totalQueries: total,
-    inScopeQueries: inScope,
-    outOfScopeQueries: outOfScope,
-    lowRelevanceQueries: lowRelevance,
-    inScopeRate: (inScope / total) * 100,
-    outOfScopeRate: (outOfScope / total) * 100,
-    avgScore,
+    inScopeQueries: total, // All queries are in scope in current schema
+    outOfScopeQueries: 0,
+    lowRelevanceQueries: unsatisfied,
+    inScopeRate: 100,
+    outOfScopeRate: 0,
+    avgScore: satisfactionRate / 100,
     avgResponseTime,
     uniqueStudents: new Set(logs.map(l => l.studentId)).size,
-    uniqueTopics: new Set(logs.flatMap(l => extractTopics(l.question))).size,
+    uniqueTopics: new Set(logs.flatMap(l => extractTopics(l.query))).size,
   };
 }
 
@@ -355,18 +327,18 @@ function generateTimeSeries(logs: any[], days: number) {
     const dayEnd = new Date(date.setHours(23, 59, 59, 999));
 
     const dayLogs = logs.filter(l => {
-      const logDate = new Date(l.timestamp);
+      const logDate = new Date(l.createdAt);
       return logDate >= dayStart && logDate <= dayEnd;
     });
+
+    const satisfied = dayLogs.filter(l => l.satisfied === true).length;
 
     series.push({
       date: dayStart.toISOString().split('T')[0],
       queries: dayLogs.length,
-      inScope: dayLogs.filter(l => !l.isOutOfScope).length,
-      outOfScope: dayLogs.filter(l => l.isOutOfScope).length,
-      avgScore: dayLogs.length > 0
-        ? dayLogs.reduce((sum, l) => sum + (l.bestScore || 0), 0) / dayLogs.length
-        : 0,
+      inScope: dayLogs.length, // All in scope
+      outOfScope: 0,
+      avgScore: dayLogs.length > 0 ? satisfied / dayLogs.length : 0,
     });
   }
 
@@ -408,20 +380,19 @@ function extractConcepts(question: string): string[] {
 }
 
 function calculateConfusionLevel(data: any): number {
-  // Higher confusion = more out of scope + low relevance + low scores
-  const outOfScopeWeight = (data.outOfScopeCount / data.count) * 40;
-  const lowRelevanceWeight = (data.lowRelevanceCount / data.count) * 30;
-  const avgScore = data.scores.reduce((a: number, b: number) => a + b, 0) / data.scores.length;
-  const scoreWeight = (1 - avgScore) * 30;
+  // Higher confusion = lower satisfaction + higher response times
+  const satisfactionRate = data.satisfactionRate || 0;
+  const confusionFromSatisfaction = (100 - satisfactionRate) * 0.7;
+  const confusionFromTime = Math.min((data.avgResponseTime / 10000) * 30, 30); // Normalize
 
-  return outOfScopeWeight + lowRelevanceWeight + scoreWeight;
+  return confusionFromSatisfaction + confusionFromTime;
 }
 
 function calculateEngagement(data: any): string {
   const queriesPerDay = data.queryCount / 7; // Assuming 7-day window
-  const scoreQuality = data.scores.reduce((a: number, b: number) => a + b, 0) / data.scores.length;
+  const satisfactionRate = (data.satisfiedCount / data.queryCount) * 100;
 
-  if (queriesPerDay > 5 && scoreQuality > 0.70) return 'high';
-  if (queriesPerDay > 2 && scoreQuality > 0.50) return 'medium';
+  if (queriesPerDay > 5 && satisfactionRate > 70) return 'high';
+  if (queriesPerDay > 2 && satisfactionRate > 50) return 'medium';
   return 'low';
 }
