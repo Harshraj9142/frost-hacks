@@ -57,6 +57,7 @@ import {
   type ChatMessage,
 } from "@/lib/store";
 import { useSearchParams } from "next/navigation";
+import { FeedbackDialog } from "@/components/feedback-dialog";
 
 // Helper function to format response text with enhanced structure
 function formatResponseText(text: string) {
@@ -222,14 +223,17 @@ function ChatBubble({
   message,
   onOpenSources,
   onCopy,
+  onFeedback,
 }: {
   message: ChatMessage;
   onOpenSources: () => void;
   onCopy: (text: string) => void;
+  onFeedback: () => void;
 }) {
   const [showExplanation, setShowExplanation] = useState(false);
   const [activeTab, setActiveTab] = useState("hints");
   const [copied, setCopied] = useState(false);
+  const [feedbackGiven, setFeedbackGiven] = useState(false);
 
   const handleCopy = () => {
     onCopy(message.content);
@@ -417,6 +421,7 @@ function ChatBubble({
             size="icon" 
             className="h-7 w-7"
             onClick={handleCopy}
+            title="Copy response"
           >
             {copied ? (
               <CheckCircle2 className="h-3 w-3 text-emerald-400" />
@@ -424,14 +429,25 @@ function ChatBubble({
               <Copy className="h-3 w-3" />
             )}
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-7 w-7"
+            title="Bookmark"
+          >
             <Bookmark className="h-3 w-3" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className={`h-7 w-7 ${feedbackGiven ? 'text-emerald-400' : ''}`}
+            onClick={() => {
+              onFeedback();
+              setFeedbackGiven(true);
+            }}
+            title="Rate this response"
+          >
             <ThumbsUp className="h-3 w-3" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7">
-            <ThumbsDown className="h-3 w-3" />
           </Button>
         </div>
 
@@ -472,6 +488,8 @@ export default function ChatPage() {
   const [documentFilter, setDocumentFilter] = useState<"all" | "indexed" | "processing">("all");
   const [selectedDocumentForChat, setSelectedDocumentForChat] = useState<string | null>(null);
   const [chatMode, setChatMode] = useState<"all" | "document">("all");
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
+  const [feedbackMessageId, setFeedbackMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { tutorMode, setTutorMode } = useChatStore();
   const courses = useCourseStore((s) => s.courses);
@@ -643,6 +661,7 @@ export default function ChatPage() {
 
       const data = await response.json();
       console.log("Response metadata:", data.metadata);
+      console.log("Response queryLogId:", data.queryLogId); // Debug log
       console.log("Citations:", data.citations);
       setIsTyping(false);
 
@@ -664,7 +683,9 @@ export default function ChatPage() {
           confidence: data.isOutOfScope ? "low" : data.metadata?.isQualityResponse ? "high" : "medium",
           sources: data.sources || [],
           isOutOfScope: data.isOutOfScope || false,
+          queryLogId: data.queryLogId, // Store queryLogId for feedback
         };
+        console.log("Created AI message with queryLogId:", aiMsg.queryLogId); // Debug log
         setMessages((prev) => [...prev, aiMsg]);
         
         if (data.sources && data.sources.length > 0) {
@@ -1186,6 +1207,10 @@ export default function ChatPage() {
                 message={msg}
                 onOpenSources={() => setSourcesOpen(true)}
                 onCopy={handleCopyMessage}
+                onFeedback={() => {
+                  setFeedbackMessageId(msg.id);
+                  setFeedbackDialogOpen(true);
+                }}
               />
             ))}
 
@@ -1570,6 +1595,23 @@ export default function ChatPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Feedback Dialog */}
+      {feedbackMessageId && (
+        <FeedbackDialog
+          open={feedbackDialogOpen}
+          onOpenChange={setFeedbackDialogOpen}
+          queryLogId={messages.find(m => m.id === feedbackMessageId)?.queryLogId || ''}
+          courseId={selectedCourse}
+          tutorMode={tutorMode}
+          hadMultipleDocuments={(messages.find(m => m.id === feedbackMessageId)?.sources?.length || 0) > 1}
+          documentCount={new Set(messages.find(m => m.id === feedbackMessageId)?.sources?.map((s: any) => s.fileName) || []).size || 1}
+          responseLength={messages.find(m => m.id === feedbackMessageId)?.content.length || 0}
+          onFeedbackSubmitted={() => {
+            console.log('Feedback submitted successfully');
+          }}
+        />
+      )}
     </div>
   );
 }

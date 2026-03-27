@@ -760,68 +760,86 @@ Remember: Your goal is to help students ${tutorMode === "guided" ? "DISCOVER" : 
         focusedDocument: focusedDocumentId || null,
         documentFocused: !!focusedDocumentId,
         retrievalStrategy: queryAnalysis.retrievalStrategy,
+        crossDocumentReasoning: crossDocAnalysis.hasMultipleDocuments,
+        conceptsIdentified: crossDocAnalysis.connections.length,
       },
     };
 
-    // Track student activity with privacy protection (async, don't block response)
+    // Track student activity with privacy protection and get queryLogId
     const responseTime = Date.now() - startTime;
+    let queryLogId: string | undefined;
     
     if (session.user.role === "student") {
-      connectDB().then(async () => {
-        try {
-          // Get unique document filenames
-          const documentNames = [...new Set(highQualityDocs.map(doc => doc.metadata.fileName))];
-          
-          // Secure data for storage (anonymize and remove PII)
-          const securedData = secureDataForStorage({
-            query: message,
-            response: response || "",
-            userId: session.user.id,
-            courseId,
-            metadata: {
-              tutorMode: tutorMode || "direct",
-              focusedDocumentId,
-              responseTime,
-            },
-          });
-          
-          console.log("Privacy protection applied:", {
-            piiRemoved: securedData.privacyMetadata.piiRemoved,
-            piiTypes: securedData.privacyMetadata.piiTypes,
-            privacyScore: securedData.privacyMetadata.privacyScore,
-          });
-          
-          // Update student activity with anonymous ID
-          await StudentActivity.findOneAndUpdate(
-            { 
-              studentId: securedData.secured.anonymousUserId, 
-              courseId 
-            },
-            {
-              $inc: { queryCount: 1 },
-              $set: { lastActive: new Date() },
-              $addToSet: { 
-                documentsAccessed: { $each: documentNames }
-              },
-            },
-            { upsert: true }
-          );
-
-          // Log the query with privacy protection
-          await QueryLog.create({
-            studentId: securedData.secured.anonymousUserId,
-            courseId,
-            query: securedData.secured.query,
-            response: securedData.secured.response,
-            documentsUsed: documentNames,
+      try {
+        await connectDB();
+        console.log("Connected to DB for query logging");
+        
+        // Get unique document filenames
+        const documentNames = [...new Set(highQualityDocs.map(doc => doc.metadata.fileName))];
+        
+        // Secure data for storage (anonymize and remove PII)
+        const securedData = secureDataForStorage({
+          query: message,
+          response: response || "",
+          userId: session.user.id,
+          courseId,
+          metadata: {
+            tutorMode: tutorMode || "direct",
+            focusedDocumentId,
             responseTime,
-            satisfied: null,
-            privacyMetadata: securedData.privacyMetadata,
-          });
-        } catch (error) {
-          console.error("Failed to track student activity:", error);
-        }
-      }).catch(err => console.error("DB connection error:", err));
+          },
+        });
+        
+        console.log("Privacy protection applied:", {
+          piiRemoved: securedData.privacyMetadata.piiRemoved,
+          piiTypes: securedData.privacyMetadata.piiTypes,
+          privacyScore: securedData.privacyMetadata.privacyScore,
+        });
+        
+        // Update student activity with anonymous ID
+        await StudentActivity.findOneAndUpdate(
+          { 
+            studentId: securedData.secured.anonymousUserId, 
+            courseId 
+          },
+          {
+            $inc: { queryCount: 1 },
+            $set: { lastActive: new Date() },
+            $addToSet: { 
+              documentsAccessed: { $each: documentNames }
+            },
+          },
+          { upsert: true }
+        );
+        console.log("Student activity updated");
+
+        // Log the query with privacy protection and get the ID
+        const queryLog = await QueryLog.create({
+          studentId: securedData.secured.anonymousUserId,
+          courseId,
+          query: securedData.secured.query,
+          response: securedData.secured.response,
+          documentsUsed: documentNames,
+          responseTime,
+          satisfied: null,
+          privacyMetadata: securedData.privacyMetadata,
+        });
+        
+        queryLogId = queryLog._id.toString();
+        console.log("✅ Query logged with ID:", queryLogId);
+      } catch (error) {
+        console.error("❌ Failed to track student activity:", error);
+      }
+    } else {
+      console.log("Skipping query log - user is not a student");
+    }
+    
+    // Add queryLogId to response
+    if (queryLogId) {
+      responseData.queryLogId = queryLogId;
+      console.log("✅ Added queryLogId to response:", queryLogId);
+    } else {
+      console.warn("⚠️ No queryLogId to add to response");
     }
 
     // Log query for analytics (async, don't wait)

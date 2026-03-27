@@ -36,6 +36,7 @@ export interface ChatMessage {
   practiceQuestion?: string;
   isOutOfScope?: boolean;
   suggestions?: string[];
+  queryLogId?: string; // For feedback tracking
 }
 
 export interface Citation {
