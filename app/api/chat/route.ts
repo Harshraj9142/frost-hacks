@@ -94,47 +94,95 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Enhanced out-of-scope detection with adjusted thresholds
+    // Enhanced out-of-scope detection with tightened thresholds
     const RELEVANCE_THRESHOLDS = {
       HIGH_QUALITY: 0.65,      // Strong match - definitely in scope
-      ACCEPTABLE: 0.50,        // Acceptable match - likely in scope
-      OUT_OF_SCOPE: 0.40,      // Below this - definitely out of scope
+      ACCEPTABLE: 0.55,        // Acceptable match - likely in scope (raised from 0.50)
+      OUT_OF_SCOPE: 0.45,      // Below this - definitely out of scope (raised from 0.40)
+      AVG_TOP3_MIN: 0.50,      // Average of top 3 must exceed this
     };
 
     const bestScore = relevantDocs[0]?.score || 0;
+    const top3Scores = relevantDocs.slice(0, 3).map(doc => doc.score);
+    const avgTop3 = top3Scores.length > 0 
+      ? top3Scores.reduce((sum, s) => sum + s, 0) / top3Scores.length 
+      : 0;
     const highQualityDocs = relevantDocs.filter(doc => doc.score >= RELEVANCE_THRESHOLDS.ACCEPTABLE);
     const hasStrongMatch = relevantDocs.some(doc => doc.score >= RELEVANCE_THRESHOLDS.HIGH_QUALITY);
     
     console.log("Relevance scores:", {
       bestScore: bestScore.toFixed(3),
+      avgTop3: avgTop3.toFixed(3),
       highQualityCount: highQualityDocs.length,
       hasStrongMatch,
     });
-    
-    // STRICT OUT-OF-SCOPE REJECTION
-    if (bestScore < RELEVANCE_THRESHOLDS.OUT_OF_SCOPE) {
-      const outOfScopeMessage = `I cannot answer this question as it appears to be outside the scope of your course materials.
 
-Your question seems to be about topics not covered in the uploaded documents. I can only help with questions directly related to your course content.
+    // Standard rejection message
+    const REJECTION_MESSAGE = `This is outside the provided course material. I can only answer questions based on your uploaded course documents.
 
-${focusedDocumentId ? "You're currently focused on a specific document. " : ""}Please ask questions about:
+Please ask questions about:
 - Topics covered in your course materials
 - Concepts from the uploaded documents
 - Content your instructor has provided
 
 Would you like to ask about something from your course materials instead?`;
+    
+    // STRICT OUT-OF-SCOPE REJECTION — Score-based (fast path)
+    if (bestScore < RELEVANCE_THRESHOLDS.OUT_OF_SCOPE || avgTop3 < RELEVANCE_THRESHOLDS.AVG_TOP3_MIN) {
+      console.log("OUT-OF-SCOPE: Rejected by score thresholds", { bestScore, avgTop3 });
       
       return NextResponse.json({
-        response: outOfScopeMessage,
+        response: REJECTION_MESSAGE,
         sources: [],
         isOutOfScope: true,
-        scopeReason: "low_relevance",
+        scopeReason: bestScore < RELEVANCE_THRESHOLDS.OUT_OF_SCOPE ? "low_relevance" : "low_avg_top3",
         bestScore: bestScore.toFixed(3),
+        avgTop3: avgTop3.toFixed(3),
         threshold: RELEVANCE_THRESHOLDS.OUT_OF_SCOPE,
         focusedDocument: focusedDocumentId || null,
       });
     }
     
+    // LLM-BASED TOPICAL RELEVANCE GUARD
+    // Even if scores pass, verify the retrieved context actually answers the question
+    try {
+      const contextSnippets = relevantDocs.slice(0, 3).map(doc => doc.text.substring(0, 300)).join("\n---\n");
+      const scopeCheck = await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          {
+            role: "system",
+            content: "You are a strict scope checker. You determine if a student's question can be answered using ONLY the provided course material excerpts. Reply with EXACTLY one word: YES or NO. Nothing else.",
+          },
+          {
+            role: "user",
+            content: `Course material excerpts:\n${contextSnippets}\n\nStudent question: ${message}\n\nCan this question be answered using ONLY the above course material? Reply YES or NO.`,
+          },
+        ],
+        temperature: 0,
+        max_tokens: 5,
+      });
+
+      const scopeAnswer = (scopeCheck.choices[0]?.message?.content || "").trim().toUpperCase();
+      console.log("LLM scope check result:", scopeAnswer);
+
+      if (scopeAnswer.startsWith("NO")) {
+        console.log("OUT-OF-SCOPE: Rejected by LLM topical guard");
+        return NextResponse.json({
+          response: REJECTION_MESSAGE,
+          sources: [],
+          isOutOfScope: true,
+          scopeReason: "llm_topical_guard",
+          bestScore: bestScore.toFixed(3),
+          avgTop3: avgTop3.toFixed(3),
+          focusedDocument: focusedDocumentId || null,
+        });
+      }
+    } catch (scopeError) {
+      // If scope check fails, log and continue (fail-open for availability)
+      console.error("LLM scope check failed, continuing:", scopeError);
+    }
+
     // WEAK MATCH WARNING
     if (highQualityDocs.length === 0 || !hasStrongMatch) {
       const bestMatch = relevantDocs[0];
@@ -415,10 +463,17 @@ CITATION EXAMPLES:
 ✗ "This is a common approach" (missing citation)
 ✗ "Studies show..." (vague, no source)
 
+SCOPE ENFORCEMENT — MANDATORY:
+- If the question CANNOT be answered from the provided context, you MUST respond with EXACTLY:
+  "This is outside the provided course material. I can only answer questions based on your uploaded course documents."
+- Do NOT attempt to answer from general knowledge under ANY circumstances
+- Do NOT say "In general..." or "Typically..." — ONLY use the context
+- If even partially outside scope, refuse the entire question
+
 CRITICAL REMINDER:
 - Stay within the bounds of the provided context
-- If asked about something not in context, redirect to what IS available
-- Accuracy over completeness - it's better to say "I don't know" than to guess
+- If asked about something not in context, give the rejection message above
+- Accuracy over completeness - it's better to refuse than to guess
 - Your credibility depends on being truthful about what the materials contain
 - EVERY fact needs a [Source X] citation
 

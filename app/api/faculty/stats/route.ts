@@ -107,8 +107,12 @@ export async function GET() {
 
     // Get student details for top students
     const topStudentIds = topStudents.map((s) => s._id);
+    // Filter out invalid ObjectIds (like anonymous user IDs)
+    const validStudentIds = topStudentIds.filter((id) => {
+      return /^[0-9a-fA-F]{24}$/.test(id.toString());
+    });
     const studentDetails = await User.find({
-      _id: { $in: topStudentIds },
+      _id: { $in: validStudentIds },
     })
       .select("name email")
       .lean();
@@ -138,8 +142,12 @@ export async function GET() {
     const activityStudentIds = [
       ...new Set(recentActivity.map((a: any) => a.studentId)),
     ];
+    // Filter out invalid ObjectIds (like anonymous user IDs)
+    const validActivityStudentIds = activityStudentIds.filter((id) => {
+      return /^[0-9a-fA-F]{24}$/.test(id.toString());
+    });
     const activityStudents = await User.find({
-      _id: { $in: activityStudentIds },
+      _id: { $in: validActivityStudentIds },
     })
       .select("name")
       .lean();
