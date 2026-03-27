@@ -13,6 +13,11 @@ import {
   validateSocraticResponse,
   type Citation,
 } from "@/lib/citations";
+import {
+  secureDataForStorage,
+  detectAndRemovePII,
+  generatePrivacyReport,
+} from "@/lib/privacy";
 import connectDB from "@/lib/mongodb";
 import StudentActivity from "@/models/StudentActivity";
 import QueryLog from "@/models/QueryLog";
@@ -47,6 +52,15 @@ export async function POST(req: NextRequest) {
         { error: "Message and courseId are required" },
         { status: 400 }
       );
+    }
+
+    // Privacy check: Detect PII in user query
+    const piiCheck = detectAndRemovePII(message);
+    if (piiCheck.hasPII) {
+      console.warn("PII detected in query:", piiCheck.piiDetected);
+      // Use cleaned query for processing
+      const cleanedMessage = piiCheck.cleanedText;
+      console.log("Query sanitized, PII removed:", piiCheck.piiDetected);
     }
 
     // Query relevant documents from Pinecone using semantic search
@@ -541,7 +555,7 @@ Remember: Your goal is to help students ${tutorMode === "guided" ? "DISCOVER" : 
       },
     };
 
-    // Track student activity (async, don't block response)
+    // Track student activity with privacy protection (async, don't block response)
     const responseTime = Date.now() - startTime;
     
     if (session.user.role === "student") {
@@ -550,9 +564,31 @@ Remember: Your goal is to help students ${tutorMode === "guided" ? "DISCOVER" : 
           // Get unique document filenames
           const documentNames = [...new Set(highQualityDocs.map(doc => doc.metadata.fileName))];
           
-          // Update student activity
+          // Secure data for storage (anonymize and remove PII)
+          const securedData = secureDataForStorage({
+            query: message,
+            response: response || "",
+            userId: session.user.id,
+            courseId,
+            metadata: {
+              tutorMode: tutorMode || "direct",
+              focusedDocumentId,
+              responseTime,
+            },
+          });
+          
+          console.log("Privacy protection applied:", {
+            piiRemoved: securedData.privacyMetadata.piiRemoved,
+            piiTypes: securedData.privacyMetadata.piiTypes,
+            privacyScore: securedData.privacyMetadata.privacyScore,
+          });
+          
+          // Update student activity with anonymous ID
           await StudentActivity.findOneAndUpdate(
-            { studentId: session.user.id, courseId },
+            { 
+              studentId: securedData.secured.anonymousUserId, 
+              courseId 
+            },
             {
               $inc: { queryCount: 1 },
               $set: { lastActive: new Date() },
@@ -563,15 +599,16 @@ Remember: Your goal is to help students ${tutorMode === "guided" ? "DISCOVER" : 
             { upsert: true }
           );
 
-          // Log the query
+          // Log the query with privacy protection
           await QueryLog.create({
-            studentId: session.user.id,
+            studentId: securedData.secured.anonymousUserId,
             courseId,
-            query: message,
-            response: response || "",
+            query: securedData.secured.query,
+            response: securedData.secured.response,
             documentsUsed: documentNames,
             responseTime,
-            satisfied: null, // Can be updated later via feedback
+            satisfied: null,
+            privacyMetadata: securedData.privacyMetadata,
           });
         } catch (error) {
           console.error("Failed to track student activity:", error);
