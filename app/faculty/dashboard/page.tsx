@@ -107,7 +107,7 @@ export default function FacultyDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen pt-14 pb-20 md:pb-6">
+    <div className="min-h-screen pt-14 pb-20 md:pb-6 bg-background">
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -279,27 +279,27 @@ export default function FacultyDashboardPage() {
                           className="p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
                         >
                           <div className="flex items-start justify-between gap-2 mb-1">
-                            <p className="text-xs font-medium">
+                            <p className="text-xs font-medium truncate flex-1">
                               {activity.studentName}
                             </p>
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">
                               {formatTimeAgo(activity.createdAt)}
                             </span>
                           </div>
-                          <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+                          <p className="text-xs text-muted-foreground line-clamp-2 mb-2 break-words">
                             {activity.query}
                           </p>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             {course && (
                               <Badge
                                 variant="outline"
-                                className="text-xs"
+                                className="text-xs flex-shrink-0"
                                 style={{ borderColor: course.color + "40" }}
                               >
                                 {course.code}
                               </Badge>
                             )}
-                            <span className="text-xs text-muted-foreground">
+                            <span className="text-xs text-muted-foreground flex-shrink-0">
                               {activity.responseTime}ms
                             </span>
                           </div>

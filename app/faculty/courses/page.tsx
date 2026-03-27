@@ -390,9 +390,9 @@ export default function FacultyCoursesPage() {
                         )}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <button className="inline-flex items-center justify-center h-7 w-7 rounded-md hover:bg-muted transition-colors">
                               <MoreVertical className="h-4 w-4" />
-                            </Button>
+                            </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => openEditDialog(course)}>

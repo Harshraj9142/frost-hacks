@@ -20,9 +20,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 md:ml-64">
+      <div className="flex-1 flex flex-col min-w-0 md:ml-64 bg-background">
         <Navbar />
-        <main className="flex-1 relative">{children}</main>
+        <main className="flex-1 relative bg-background">{children}</main>
         <MobileNav />
       </div>
     </>

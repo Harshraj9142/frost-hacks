@@ -22,6 +22,7 @@ export async function GET() {
       .select("_id")
       .lean();
     const courseIds = facultyCourses.map((c: any) => c._id.toString());
+    const courseObjectIds = facultyCourses.map((c: any) => c._id);
 
     // Get document stats
     const totalDocuments = await DocumentModel.countDocuments({
@@ -44,9 +45,13 @@ export async function GET() {
     });
 
     // Get total students enrolled in faculty courses
+    // Check both string and ObjectId formats for compatibility
     const totalStudents = await User.countDocuments({
       role: "student",
-      courses: { $in: courseIds },
+      $or: [
+        { courses: { $in: courseIds } },
+        { courses: { $in: courseObjectIds } }
+      ]
     });
 
     // Get active students (queried in last 7 days)
