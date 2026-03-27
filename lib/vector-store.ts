@@ -159,6 +159,116 @@ export async function queryVectors(
 }
 
 /**
+ * Multi-query retrieval for complex queries
+ * Executes multiple related queries and merges results
+ */
+export async function queryVectorsMulti(
+  queries: string[],
+  courseId: string | null,
+  topK: number = 5,
+  focusedDocumentId?: string,
+  studentId?: string
+): Promise<Array<{ text: string; score: number; metadata: VectorMetadata }>> {
+  try {
+    const index = await getPineconeIndex();
+    const { generateEmbeddings } = await import("./embeddings");
+    
+    // Generate embeddings for all queries
+    const queryEmbeddings = await generateEmbeddings(queries);
+
+    // Build filter
+    let filter: any = {};
+    if (studentId) {
+      filter.studentId = { $eq: studentId };
+      filter.isStudentDocument = { $eq: true };
+      if (focusedDocumentId) {
+        filter.documentId = { $eq: focusedDocumentId };
+      }
+    } else if (courseId) {
+      filter.courseId = { $eq: courseId };
+      filter.isStudentDocument = { $eq: false };
+      if (focusedDocumentId) {
+        const connectDB = (await import("./mongodb")).default;
+        const DocumentModel = (await import("@/models/Document")).default;
+        await connectDB();
+        const document = await DocumentModel.findById(focusedDocumentId).select("fileName");
+        if (document) {
+          filter.fileName = { $eq: document.fileName };
+        }
+      }
+    }
+
+    // Execute all queries in parallel
+    const queryPromises = queryEmbeddings.map(embedding =>
+      index.query({
+        vector: embedding,
+        topK: Math.ceil(topK * 1.5), // Get more per query
+        includeMetadata: true,
+        filter,
+      })
+    );
+
+    const queryResponses = await Promise.all(queryPromises);
+
+    // Merge and deduplicate results using Reciprocal Rank Fusion (RRF)
+    const resultMap = new Map<string, { 
+      text: string; 
+      score: number; 
+      metadata: VectorMetadata;
+      rrfScore: number;
+    }>();
+
+    queryResponses.forEach((response, queryIndex) => {
+      response.matches.forEach((match, rank) => {
+        const text = (match.metadata as any).text;
+        const key = `${(match.metadata as any).fileName}-${(match.metadata as any).chunkIndex}`;
+        
+        // Reciprocal Rank Fusion: 1 / (k + rank)
+        const k = 60; // Constant for RRF
+        const rrfScore = 1 / (k + rank);
+        
+        if (resultMap.has(key)) {
+          // Accumulate RRF scores from multiple queries
+          const existing = resultMap.get(key)!;
+          existing.rrfScore += rrfScore;
+          existing.score = Math.max(existing.score, match.score || 0);
+        } else {
+          resultMap.set(key, {
+            text,
+            score: match.score || 0,
+            metadata: match.metadata as any as VectorMetadata,
+            rrfScore,
+          });
+        }
+      });
+    });
+
+    // Sort by RRF score and take top results
+    const mergedResults = Array.from(resultMap.values())
+      .sort((a, b) => b.rrfScore - a.rrfScore)
+      .slice(0, topK * 2);
+
+    // Deduplicate similar chunks
+    const deduplicatedResults = mergedResults
+      .filter((result, index, self) => {
+        if (index === 0) return true;
+        const prevText = self[index - 1].text;
+        const similarity = calculateTextSimilarity(result.text, prevText);
+        return similarity < 0.9;
+      })
+      .slice(0, topK)
+      .map(({ text, score, metadata }) => ({ text, score, metadata }));
+
+    console.log(`Multi-query returned ${deduplicatedResults.length} unique results from ${queries.length} queries`);
+
+    return deduplicatedResults;
+  } catch (error) {
+    console.error("Error in multi-query:", error);
+    throw new Error("Failed to execute multi-query");
+  }
+}
+
+/**
  * Calculate text similarity (simple Jaccard similarity)
  */
 function calculateTextSimilarity(text1: string, text2: string): number {

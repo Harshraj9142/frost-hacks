@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { queryVectors } from "@/lib/vector-store";
+import { queryVectors, queryVectorsMulti } from "@/lib/vector-store";
 import Groq from "groq-sdk";
 import {
   createCitation,
@@ -11,6 +11,8 @@ import {
   generateCitationReport,
   validateResponseCitations,
   validateSocraticResponse,
+  identifyCrossDocumentConnections,
+  formatMultipleCitations,
   type Citation,
 } from "@/lib/citations";
 import {
@@ -18,6 +20,11 @@ import {
   detectAndRemovePII,
   generatePrivacyReport,
 } from "@/lib/privacy";
+import {
+  analyzeQuery,
+  formatQueryAnalysis,
+  type QueryAnalysis,
+} from "@/lib/query-analyzer";
 import connectDB from "@/lib/mongodb";
 import StudentActivity from "@/models/StudentActivity";
 import QueryLog from "@/models/QueryLog";
@@ -25,6 +32,73 @@ import QueryLog from "@/models/QueryLog";
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
+
+/**
+ * Get query-specific guidance for the AI based on query analysis
+ */
+function getQueryTypeGuidance(analysis: QueryAnalysis): string {
+  const guidance: string[] = [];
+  
+  guidance.push(`QUERY TYPE: ${analysis.queryType.toUpperCase()}`);
+  guidance.push(`REASONING REQUIRED: ${analysis.reasoningType.toUpperCase()}`);
+  guidance.push(`COMPLEXITY: ${analysis.complexity.toUpperCase()}\n`);
+  
+  if (analysis.queryType === 'conceptual') {
+    guidance.push(`CONCEPTUAL QUERY GUIDANCE:
+- Focus on explaining WHY and HOW things work
+- Break down the underlying principles
+- Use examples from the materials to illustrate concepts
+- Connect abstract ideas to concrete examples
+- Explain cause-and-effect relationships`);
+  }
+  
+  if (analysis.queryType === 'numerical') {
+    guidance.push(`NUMERICAL QUERY GUIDANCE:
+- Show step-by-step calculations if formulas are in the materials
+- Explain the reasoning behind each step
+- Reference the specific formula or method from the sources
+- Verify units and values match the source materials
+- If the exact calculation isn't in materials, explain what IS available`);
+  }
+  
+  if (analysis.queryType === 'comparative') {
+    guidance.push(`COMPARATIVE QUERY GUIDANCE:
+- Create a clear comparison structure
+- Identify similarities AND differences
+- Use information from multiple sources if available
+- Organize comparison by key dimensions
+- Conclude with when to use each option (if materials provide this)`);
+  }
+  
+  if (analysis.queryType === 'indirect') {
+    guidance.push(`INDIRECT/COMPLEX QUERY GUIDANCE:
+- Break down the question into components
+- Address each component using available materials
+- Make logical connections between concepts
+- Be explicit about what can be inferred vs. what is directly stated
+- If the query requires information not in materials, acknowledge this clearly`);
+  }
+  
+  if (analysis.requiresCrossDocument) {
+    guidance.push(`CROSS-DOCUMENT REASONING REQUIRED:
+- You have information from MULTIPLE documents
+- Explicitly connect concepts across different sources
+- Show how information from one document relates to another
+- Build a coherent narrative that synthesizes multiple sources
+- Example: "Source 1 introduces concept X, which Source 3 applies to scenario Y"
+- Cite all relevant sources when making connections`);
+  }
+  
+  if (analysis.requiresMultipleSources) {
+    guidance.push(`MULTIPLE SOURCES REQUIRED:
+- This query requires synthesizing information from multiple sources
+- Cite each source when using its information
+- Show how different sources complement each other
+- Create a unified answer that integrates all relevant sources`);
+  }
+  
+  return guidance.join('\n\n');
+}
 
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
@@ -63,19 +137,40 @@ export async function POST(req: NextRequest) {
       console.log("Query sanitized, PII removed:", piiCheck.piiDetected);
     }
 
-    // Query relevant documents from Pinecone using semantic search
-    // Retrieve more chunks for better context coverage
+    // STEP 1: Analyze the query to determine optimal processing strategy
+    const queryAnalysis = analyzeQuery(message);
+    console.log(formatQueryAnalysis(queryAnalysis));
+
+    // STEP 2: Query relevant documents using appropriate strategy
     let relevantDocs;
     
-    if (focusedDocumentId) {
+    if (queryAnalysis.retrievalStrategy === 'multi_query' && queryAnalysis.expandedQueries) {
+      console.log("Using multi-query retrieval for complex query");
+      // Use multi-query retrieval for complex queries
+      relevantDocs = await queryVectorsMulti(
+        queryAnalysis.expandedQueries,
+        courseId,
+        queryAnalysis.suggestedTopK,
+        focusedDocumentId
+      );
+    } else if (focusedDocumentId) {
       console.log("Querying with document focus:", focusedDocumentId);
       // If focused on a specific document, retrieve more chunks for better coverage
-      relevantDocs = await queryVectors(message, courseId, 8, focusedDocumentId);
+      relevantDocs = await queryVectors(
+        message, 
+        courseId, 
+        queryAnalysis.suggestedTopK, 
+        focusedDocumentId
+      );
       console.log("Focused query returned:", relevantDocs.length, "results");
     } else {
       console.log("Querying all documents in course");
-      // Query all documents in the course with more results
-      relevantDocs = await queryVectors(message, courseId, 10);
+      // Query all documents in the course
+      relevantDocs = await queryVectors(
+        message, 
+        courseId, 
+        queryAnalysis.suggestedTopK
+      );
       console.log("General query returned:", relevantDocs.length, "results");
     }
 
@@ -232,8 +327,36 @@ I can only provide accurate answers for questions directly covered in your cours
 
     console.log("Context built with", highQualityDocs.length, "sources");
 
-    // Create system prompt based on tutor mode
+    // STEP 3: Analyze cross-document connections if multiple documents
+    const crossDocAnalysis = identifyCrossDocumentConnections(
+      highQualityDocs.map((doc, i) => createCitation(doc, i))
+    );
+    
+    console.log("Cross-document analysis:", {
+      hasMultipleDocuments: crossDocAnalysis.hasMultipleDocuments,
+      documentCount: crossDocAnalysis.documentCount,
+      connections: crossDocAnalysis.connections.length,
+    });
+
+    // Add cross-document context if relevant
+    let crossDocContext = "";
+    if (crossDocAnalysis.hasMultipleDocuments && crossDocAnalysis.connections.length > 0) {
+      crossDocContext = "\n\n=== CROSS-DOCUMENT CONNECTIONS ===\n";
+      crossDocContext += "The following concepts appear across multiple documents:\n\n";
+      
+      crossDocAnalysis.connections.forEach((conn, idx) => {
+        crossDocContext += `Connection ${idx + 1}: ${conn.documents.join(" + ")}\n`;
+        crossDocContext += `Shared concepts: ${conn.sharedConcepts.join(", ")}\n`;
+        crossDocContext += `This suggests these documents discuss related topics that can be connected.\n\n`;
+      });
+    }
+
+    // Create system prompt based on tutor mode with query-specific enhancements
+    const queryTypeGuidance = getQueryTypeGuidance(queryAnalysis);
+    
     const directModePrompt = `You are an expert AI tutor that helps students learn effectively by providing clear, accurate, and well-structured answers based STRICTLY on their course materials.
+
+${queryTypeGuidance}
 
 CRITICAL ACCURACY RULES - FOLLOW THESE EXACTLY:
 1. ONLY use information EXPLICITLY stated in the provided context below
@@ -446,7 +569,13 @@ CRITICAL VALIDATION METRICS:
     const fullSystemPrompt = `${systemPrompt}
 
 CONTEXT FROM COURSE MATERIALS:
-${context}
+${context}${crossDocContext}
+
+${crossDocAnalysis.hasMultipleDocuments ? `
+IMPORTANT: You have access to information from ${crossDocAnalysis.documentCount} different documents.
+When answering, consider how information from different sources relates and connects.
+Explicitly cite multiple sources when synthesizing information across documents.
+` : ''}
 
 CRITICAL CITATION REQUIREMENTS:
 1. ALWAYS reference sources using [Source X] notation when stating facts
@@ -455,13 +584,22 @@ CRITICAL CITATION REQUIREMENTS:
 4. Direct quotes: "According to Source 1, 'exact quote here'"
 5. Every factual claim MUST have a citation
 6. If information spans multiple sources, cite all relevant ones
+7. For cross-document connections, cite both: "This relates to [Source 1] and builds on [Source 3]"
 
 CITATION EXAMPLES:
 ✓ "The algorithm has O(log n) complexity [Source 1]"
 ✓ "According to Source 2, this approach is widely used in practice"
 ✓ "Research shows [Source 1, 3] that this method is effective"
+✓ "Lecture 2 introduces this concept [Source 1], which is expanded in Lecture 5 [Source 3]"
 ✗ "This is a common approach" (missing citation)
 ✗ "Studies show..." (vague, no source)
+
+CROSS-DOCUMENT REASONING (when multiple documents are cited):
+- Explicitly connect concepts across documents
+- Show how information from one source relates to another
+- Example: "Source 1 defines X, while Source 3 shows how X is applied in practice"
+- Example: "The theory from Source 2 explains why the example in Source 4 works"
+- Build a coherent narrative that synthesizes information from multiple sources
 
 SCOPE ENFORCEMENT — MANDATORY:
 - If the question CANNOT be answered from the provided context, you MUST respond with EXACTLY:
@@ -594,6 +732,20 @@ Remember: Your goal is to help students ${tutorMode === "guided" ? "DISCOVER" : 
         quality: citationValidation.quality,
       },
       socraticValidation: socraticValidation || undefined,
+      queryAnalysis: {
+        type: queryAnalysis.queryType,
+        reasoning: queryAnalysis.reasoningType,
+        complexity: queryAnalysis.complexity,
+        requiresMultipleSources: queryAnalysis.requiresMultipleSources,
+        requiresCrossDocument: queryAnalysis.requiresCrossDocument,
+        requiresNumerical: queryAnalysis.requiresNumericalReasoning,
+      },
+      crossDocumentAnalysis: {
+        hasMultipleDocuments: crossDocAnalysis.hasMultipleDocuments,
+        documentCount: crossDocAnalysis.documentCount,
+        connectionsFound: crossDocAnalysis.connections.length,
+        documents: Array.from(new Set(highQualityDocs.map(d => d.metadata.fileName))),
+      },
       metadata: {
         relevantDocsCount: highQualityDocs.length,
         totalDocsSearched: relevantDocs.length,
@@ -607,6 +759,7 @@ Remember: Your goal is to help students ${tutorMode === "guided" ? "DISCOVER" : 
         responseLength: response?.length || 0,
         focusedDocument: focusedDocumentId || null,
         documentFocused: !!focusedDocumentId,
+        retrievalStrategy: queryAnalysis.retrievalStrategy,
       },
     };
 

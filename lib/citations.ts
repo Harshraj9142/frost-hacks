@@ -247,6 +247,139 @@ export function formatCitationsForUI(citations: Citation[]): any[] {
 }
 
 /**
+ * Group citations by document for cross-document analysis
+ */
+export function groupCitationsByDocument(citations: Citation[]): Map<string, Citation[]> {
+  const grouped = new Map<string, Citation[]>();
+  
+  citations.forEach(citation => {
+    const existing = grouped.get(citation.fileName) || [];
+    existing.push(citation);
+    grouped.set(citation.fileName, existing);
+  });
+  
+  return grouped;
+}
+
+/**
+ * Identify cross-document connections
+ * Finds citations from different documents that might be related
+ */
+export function identifyCrossDocumentConnections(citations: Citation[]): {
+  connections: Array<{
+    documents: string[];
+    sharedConcepts: string[];
+    citations: Citation[];
+  }>;
+  hasMultipleDocuments: boolean;
+  documentCount: number;
+} {
+  const grouped = groupCitationsByDocument(citations);
+  const documentNames = Array.from(grouped.keys());
+  const hasMultipleDocuments = documentNames.length > 1;
+  
+  const connections: Array<{
+    documents: string[];
+    sharedConcepts: string[];
+    citations: Citation[];
+  }> = [];
+  
+  if (hasMultipleDocuments) {
+    // Find shared concepts across documents
+    for (let i = 0; i < documentNames.length; i++) {
+      for (let j = i + 1; j < documentNames.length; j++) {
+        const doc1 = documentNames[i];
+        const doc2 = documentNames[j];
+        const citations1 = grouped.get(doc1)!;
+        const citations2 = grouped.get(doc2)!;
+        
+        // Extract concepts from both sets of citations
+        const concepts1 = extractConceptsFromCitations(citations1);
+        const concepts2 = extractConceptsFromCitations(citations2);
+        
+        // Find shared concepts
+        const sharedConcepts = concepts1.filter(c => concepts2.includes(c));
+        
+        if (sharedConcepts.length > 0) {
+          connections.push({
+            documents: [doc1, doc2],
+            sharedConcepts,
+            citations: [...citations1, ...citations2],
+          });
+        }
+      }
+    }
+  }
+  
+  return {
+    connections,
+    hasMultipleDocuments,
+    documentCount: documentNames.length,
+  };
+}
+
+/**
+ * Extract key concepts from citation texts
+ */
+function extractConceptsFromCitations(citations: Citation[]): string[] {
+  const concepts = new Set<string>();
+  
+  citations.forEach(citation => {
+    // Extract capitalized terms (likely concepts)
+    const capitalizedTerms = citation.text.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g);
+    if (capitalizedTerms) {
+      capitalizedTerms.forEach(term => concepts.add(term.toLowerCase()));
+    }
+    
+    // Extract technical terms (common patterns)
+    const technicalPatterns = citation.text.match(/\b[a-z]+\s+(?:algorithm|method|approach|technique|theory|principle|concept|formula|equation|function|process|system)\b/gi);
+    if (technicalPatterns) {
+      technicalPatterns.forEach(term => concepts.add(term.toLowerCase()));
+    }
+  });
+  
+  return Array.from(concepts);
+}
+
+/**
+ * Format multiple citations for inline display
+ * Example: [1, 2: algorithms.pdf, pp. 5-7; 3: data-structures.pdf, p. 12]
+ */
+export function formatMultipleCitations(citations: Citation[], indices: number[]): string {
+  if (indices.length === 0) return '';
+  if (indices.length === 1) return formatInlineCitation(citations[indices[0]], indices[0]);
+  
+  // Group by document
+  const byDocument = new Map<string, { indices: number[]; pages: Set<number> }>();
+  
+  indices.forEach(idx => {
+    const citation = citations[idx];
+    if (!byDocument.has(citation.fileName)) {
+      byDocument.set(citation.fileName, { indices: [], pages: new Set() });
+    }
+    const group = byDocument.get(citation.fileName)!;
+    group.indices.push(idx + 1);
+    if (citation.pageNumber) group.pages.add(citation.pageNumber);
+    if (citation.pageNumbers) citation.pageNumbers.forEach(p => group.pages.add(p));
+  });
+  
+  // Format each document group
+  const parts: string[] = [];
+  byDocument.forEach((group, fileName) => {
+    const indexStr = group.indices.join(', ');
+    const pages = Array.from(group.pages).sort((a, b) => a - b);
+    const pageStr = pages.length > 0 
+      ? pages.length === 1 
+        ? `p. ${pages[0]}`
+        : `pp. ${pages.join(', ')}`
+      : '';
+    parts.push(`${indexStr}: ${fileName}${pageStr ? ', ' + pageStr : ''}`);
+  });
+  
+  return `[${parts.join('; ')}]`;
+}
+
+/**
  * Generate citation report for validation
  */
 export function generateCitationReport(citations: Citation[]): string {
