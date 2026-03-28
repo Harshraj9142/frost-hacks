@@ -235,7 +235,7 @@ export default function StudentDocumentsPage() {
                 </div>
 
                 {/* Course Filter */}
-                <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                <Select value={selectedCourse} onValueChange={(value) => setSelectedCourse(value || "all")}>
                   <SelectTrigger className="border-2 border-foreground/30">
                     <SelectValue placeholder="All Courses" />
                   </SelectTrigger>
@@ -250,7 +250,7 @@ export default function StudentDocumentsPage() {
                 </Select>
 
                 {/* Status Filter */}
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value || "all")}>
                   <SelectTrigger className="border-2 border-foreground/30">
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>

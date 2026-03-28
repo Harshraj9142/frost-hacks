@@ -277,7 +277,7 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+            <Select value={selectedCourse} onValueChange={(value) => setSelectedCourse(value || "all")}>
               <SelectTrigger className="w-[180px] h-9">
                 <SelectValue placeholder="All Courses" />
               </SelectTrigger>
@@ -291,7 +291,7 @@ export default function AnalyticsPage() {
               </SelectContent>
             </Select>
 
-            <Select value={timeRange} onValueChange={setTimeRange}>
+            <Select value={timeRange} onValueChange={(value) => setTimeRange(value || "7d")}>
               <SelectTrigger className="w-[140px] h-9">
                 <SelectValue />
               </SelectTrigger>

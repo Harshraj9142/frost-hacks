@@ -43,19 +43,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { useCourseStore } from "@/lib/store";
-
-interface Course {
-  id: string;
-  code: string;
-  name: string;
-  color: string;
-  studentCount: number;
-  documentCount: number;
-  indexedCount: number;
-  totalChunks: number;
-  instructor: string;
-}
+import { useCourseStore, type Course } from "@/lib/store";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -100,8 +88,8 @@ export default function FacultyCoursesPage() {
     
     const matchesFilter = 
       filterStatus === "all" ||
-      (filterStatus === "active" && course.indexedCount > 0) ||
-      (filterStatus === "inactive" && course.indexedCount === 0);
+      (filterStatus === "active" && course.documentCount > 0) ||
+      (filterStatus === "inactive" && course.documentCount === 0);
     
     return matchesSearch && matchesFilter;
   });
@@ -290,7 +278,7 @@ export default function FacultyCoursesPage() {
                 </div>
                 <div>
                   <div className="text-2xl font-black">
-                    {courses.filter(c => c.indexedCount > 0).length}
+                    {courses.filter(c => c.documentCount > 0).length}
                   </div>
                   <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Active</div>
                 </div>
@@ -374,17 +362,15 @@ export default function FacultyCoursesPage() {
                       <h3 className="font-black text-base uppercase tracking-wide">{course.code}</h3>
                     </div>
                     <div className="flex items-center gap-2">
-                      {course.indexedCount > 0 && (
+                      {course.documentCount > 0 && (
                         <div className="px-2 py-1 border border-foreground/30 bg-background flex items-center gap-1">
                           <CheckCircle2 className="h-3 w-3" />
                           <span className="text-[9px] font-bold tracking-wider uppercase">Active</span>
                         </div>
                       )}
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button className="inline-flex items-center justify-center h-7 w-7 border-2 border-foreground/30 hover:border-foreground/50 hover:bg-foreground/5 transition-colors">
-                            <MoreVertical className="h-4 w-4" />
-                          </button>
+                        <DropdownMenuTrigger className="inline-flex items-center justify-center h-7 w-7 border-2 border-foreground/30 hover:border-foreground/50 hover:bg-foreground/5 transition-colors">
+                          <MoreVertical className="h-4 w-4" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => openEditDialog(course)}>
@@ -433,12 +419,12 @@ export default function FacultyCoursesPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-2 border-2 border-foreground/20 text-center bg-card">
-                        <div className="text-sm font-black">{course.indexedCount}</div>
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Indexed</div>
+                        <div className="text-sm font-black">{course.documentCount}</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Documents</div>
                       </div>
                       <div className="p-2 border-2 border-foreground/20 text-center bg-card">
-                        <div className="text-sm font-black">{course.totalChunks}</div>
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Chunks</div>
+                        <div className="text-sm font-black">{course.studentCount}</div>
+                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Students</div>
                       </div>
                     </div>
                   </div>
@@ -642,7 +628,7 @@ export default function FacultyCoursesPage() {
                     </p>
                     <ul className="text-sm text-muted-foreground mt-2 space-y-1">
                       <li>• {selectedCourse.documentCount} documents</li>
-                      <li>• {selectedCourse.totalChunks} indexed chunks</li>
+                      <li>• {selectedCourse.studentCount} enrolled students</li>
                       <li>• Student enrollment records</li>
                     </ul>
                     <p className="text-sm text-red-400 mt-3 font-medium">

@@ -718,7 +718,7 @@ Remember: Your goal is to help students ${tutorMode === "guided" ? "DISCOVER" : 
       bibliographyCitation: formatBibliographyCitation(citation, index),
     }));
 
-    const responseData = {
+    const responseData: any = {
       response,
       sources,
       citations: structuredResponse.citations,

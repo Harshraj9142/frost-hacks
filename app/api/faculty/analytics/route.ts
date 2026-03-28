@@ -178,13 +178,13 @@ function identifyWeakConcepts(logs: any[]) {
 
 // Cluster topics
 function clusterTopics(logs: any[]) {
-  const clusters = {
-    algorithms: { topics: [], count: 0, avgSatisfaction: 0 },
-    dataStructures: { topics: [], count: 0, avgSatisfaction: 0 },
-    complexity: { topics: [], count: 0, avgSatisfaction: 0 },
-    implementation: { topics: [], count: 0, avgSatisfaction: 0 },
-    theory: { topics: [], count: 0, avgSatisfaction: 0 },
-    other: { topics: [], count: 0, avgSatisfaction: 0 },
+  const clusters: Record<string, { topics: string[]; count: number; avgSatisfaction: number; avgScore?: number }> = {
+    algorithms: { topics: [] as string[], count: 0, avgSatisfaction: 0 },
+    dataStructures: { topics: [] as string[], count: 0, avgSatisfaction: 0 },
+    complexity: { topics: [] as string[], count: 0, avgSatisfaction: 0 },
+    implementation: { topics: [] as string[], count: 0, avgSatisfaction: 0 },
+    theory: { topics: [] as string[], count: 0, avgSatisfaction: 0 },
+    other: { topics: [] as string[], count: 0, avgSatisfaction: 0 },
   };
 
   const clusterKeywords: Record<string, string[]> = {

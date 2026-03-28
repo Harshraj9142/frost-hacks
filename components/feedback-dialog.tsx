@@ -257,7 +257,7 @@ export function FeedbackDialog({
                         </div>
                         <Slider
                           value={[accuracy]}
-                          onValueChange={(values) => setAccuracy(values[0])}
+                          onValueChange={(values) => setAccuracy(Array.isArray(values) ? values[0] : values)}
                           min={1}
                           max={5}
                           step={1}
@@ -272,7 +272,7 @@ export function FeedbackDialog({
                         </div>
                         <Slider
                           value={[clarity]}
-                          onValueChange={(values) => setClarity(values[0])}
+                          onValueChange={(values) => setClarity(Array.isArray(values) ? values[0] : values)}
                           min={1}
                           max={5}
                           step={1}
@@ -287,7 +287,7 @@ export function FeedbackDialog({
                         </div>
                         <Slider
                           value={[completeness]}
-                          onValueChange={(values) => setCompleteness(values[0])}
+                          onValueChange={(values) => setCompleteness(Array.isArray(values) ? values[0] : values)}
                           min={1}
                           max={5}
                           step={1}
@@ -302,7 +302,7 @@ export function FeedbackDialog({
                         </div>
                         <Slider
                           value={[relevance]}
-                          onValueChange={(values) => setRelevance(values[0])}
+                          onValueChange={(values) => setRelevance(Array.isArray(values) ? values[0] : values)}
                           min={1}
                           max={5}
                           step={1}
@@ -317,7 +317,7 @@ export function FeedbackDialog({
                         </div>
                         <Slider
                           value={[citations]}
-                          onValueChange={(values) => setCitations(values[0])}
+                          onValueChange={(values) => setCitations(Array.isArray(values) ? values[0] : values)}
                           min={1}
                           max={5}
                           step={1}

@@ -163,7 +163,7 @@ export async function GET(req: NextRequest) {
     // Calculate satisfaction rate
     const satisfactionRate = totalFeedback > 0 
       ? ((helpfulCount / totalFeedback) * 100).toFixed(1)
-      : 0;
+      : "0";
 
     // Analyze by tutor mode
     const directModeFeedback = allFeedback.filter(f => f.tutorMode === 'direct');
@@ -171,11 +171,11 @@ export async function GET(req: NextRequest) {
 
     const directSatisfaction = directModeFeedback.length > 0
       ? ((directModeFeedback.filter(f => f.rating === 'helpful' || f.rating === 'very_helpful').length / directModeFeedback.length) * 100).toFixed(1)
-      : 0;
+      : "0";
 
     const guidedSatisfaction = guidedModeFeedback.length > 0
       ? ((guidedModeFeedback.filter(f => f.rating === 'helpful' || f.rating === 'very_helpful').length / guidedModeFeedback.length) * 100).toFixed(1)
-      : 0;
+      : "0";
 
     // Common issues
     const issueCount: Record<string, number> = {};

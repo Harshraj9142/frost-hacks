@@ -72,8 +72,8 @@ export function Navbar() {
             <span>⌘K</span>
           </Button>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Avatar className="h-8 w-8 cursor-pointer">
+            <DropdownMenuTrigger className="h-8 w-8 cursor-pointer rounded-full inline-flex items-center justify-center">
+              <Avatar className="h-8 w-8">
                 <AvatarFallback className={isFaculty ? "bg-gradient-to-br from-emerald-500 to-cyan-500 text-white" : "gradient-primary text-white"}>
                   {user?.name?.split(" ").map((n) => n[0]).join("") || "U"}
                 </AvatarFallback>
@@ -87,8 +87,8 @@ export function Navbar() {
                 </p>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href={settingsHref} className="cursor-pointer">Settings</Link>
+              <DropdownMenuItem>
+                <Link href={settingsHref} className="cursor-pointer w-full">Settings</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem

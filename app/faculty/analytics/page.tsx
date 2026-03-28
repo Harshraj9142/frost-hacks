@@ -121,7 +121,7 @@ export default function FacultyAnalyticsPage() {
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
-              <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+              <Select value={selectedCourse} onValueChange={(value) => setSelectedCourse(value || "")}>
                 <SelectTrigger className="border-2 border-foreground font-bold">
                   <SelectValue placeholder="Select Course" />
                 </SelectTrigger>
@@ -142,7 +142,7 @@ export default function FacultyAnalyticsPage() {
               </Select>
             </div>
             <div className="w-full sm:w-48">
-              <Select value={timeRange} onValueChange={setTimeRange}>
+              <Select value={timeRange} onValueChange={(value) => setTimeRange(value || "7d")}>
                 <SelectTrigger className="border-2 border-foreground font-bold">
                   <SelectValue />
                 </SelectTrigger>

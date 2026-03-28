@@ -21,8 +21,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Only admins and faculty can access privacy validation
-    if (session.user.role !== "admin" && session.user.role !== "faculty") {
+    // Only faculty can access privacy validation
+    if (session.user.role !== "faculty") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -227,8 +227,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Only admins can access privacy status
-    if (session.user.role !== "admin") {
+    // Only faculty can access privacy status
+    if (session.user.role !== "faculty") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

@@ -26,6 +26,7 @@
     "cmdk": "^1.1.1",
     "framer-motion": "^12.38.0",
     "groq-sdk": "^1.1.2",
+    "jspdf": "^4.2.1",
     "langchain": "^1.2.37",
     "lucide-react": "^1.6.0",
     "mongodb": "^7.1.1",

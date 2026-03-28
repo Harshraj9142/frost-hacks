@@ -191,7 +191,7 @@ export default function DocumentsPage() {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label className="font-bold uppercase text-xs tracking-wider">Select Course</Label>
-                  <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                  <Select value={selectedCourse} onValueChange={(value) => setSelectedCourse(value || "")}>
                     <SelectTrigger className="border-2 border-foreground/30">
                       <SelectValue placeholder="Choose a course" />
                     </SelectTrigger>

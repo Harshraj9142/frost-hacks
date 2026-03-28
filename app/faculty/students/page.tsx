@@ -309,7 +309,7 @@ export default function FacultyStudentsPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+          <Select value={selectedCourse} onValueChange={(value) => setSelectedCourse(value || "all")}>
             <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="All Courses" />
             </SelectTrigger>

@@ -465,7 +465,7 @@ export default function LearnPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label className="uppercase font-bold tracking-wider">Course</Label>
-                  <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                  <Select value={selectedCourse} onValueChange={(value) => setSelectedCourse(value || "")}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select course" />
                     </SelectTrigger>
@@ -490,7 +490,7 @@ export default function LearnPage() {
 
                 <div className="space-y-2">
                   <Label className="uppercase font-bold tracking-wider">Difficulty</Label>
-                  <Select value={difficulty} onValueChange={setDifficulty}>
+                  <Select value={difficulty} onValueChange={(value) => setDifficulty(value || "medium")}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -504,7 +504,7 @@ export default function LearnPage() {
 
                 <div className="space-y-2">
                   <Label className="uppercase font-bold tracking-wider">Count</Label>
-                  <Select value={count.toString()} onValueChange={(v) => setCount(parseInt(v))}>
+                  <Select value={count.toString()} onValueChange={(v) => setCount(parseInt(v || "5"))}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>

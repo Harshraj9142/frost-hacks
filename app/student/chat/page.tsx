@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, Suspense } from "react";
 import {
   Send,
   Plus,
@@ -35,6 +35,7 @@ import {
   X,
   Pin,
   Target,
+  FileDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -58,6 +59,8 @@ import {
 } from "@/lib/store";
 import { useSearchParams } from "next/navigation";
 import { FeedbackDialog } from "@/components/feedback-dialog";
+import { exportChatToPDF, exportChatSummaryToPDF } from "@/lib/pdf-export";
+import { useSession } from "next-auth/react";
 
 // Helper function to format response text with enhanced structure
 function formatResponseText(text: string) {
@@ -469,8 +472,9 @@ function ChatBubble({
   );
 }
 
-export default function ChatPage() {
+function ChatPageContent() {
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -490,6 +494,8 @@ export default function ChatPage() {
   const [chatMode, setChatMode] = useState<"all" | "document">("all");
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [feedbackMessageId, setFeedbackMessageId] = useState<string | null>(null);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { tutorMode, setTutorMode } = useChatStore();
   const courses = useCourseStore((s) => s.courses);
@@ -594,23 +600,43 @@ export default function ChatPage() {
   };
 
   const handleExportChat = () => {
-    const chatText = messages
-      .map((msg) => {
-        const role = msg.role === "user" ? "You" : "AI Tutor";
-        const timestamp = new Date(msg.timestamp).toLocaleString();
-        return `[${timestamp}] ${role}:\n${msg.content}\n`;
-      })
-      .join("\n---\n\n");
+    setExportDialogOpen(true);
+  };
 
-    const blob = new Blob([chatText], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `chat-${selectedCourse}-${Date.now()}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleExportFullPDF = () => {
+    setIsExporting(true);
+    try {
+      const currentCourse = courses.find((c) => c.id === selectedCourse);
+      exportChatToPDF(messages, {
+        courseName: currentCourse?.name || "Course",
+        courseCode: currentCourse?.code || "",
+        studentName: session?.user?.name || "Student",
+        includeTimestamps: true,
+        includeSources: true,
+      });
+      setExportDialogOpen(false);
+    } catch (error) {
+      console.error("Export failed:", error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportSummaryPDF = () => {
+    setIsExporting(true);
+    try {
+      const currentCourse = courses.find((c) => c.id === selectedCourse);
+      exportChatSummaryToPDF(messages, {
+        courseName: currentCourse?.name || "Course",
+        courseCode: currentCourse?.code || "",
+        studentName: session?.user?.name || "Student",
+      });
+      setExportDialogOpen(false);
+    } catch (error) {
+      console.error("Export failed:", error);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleNewChat = () => {
@@ -1612,6 +1638,118 @@ export default function ChatPage() {
           }}
         />
       )}
+
+      {/* Export Dialog */}
+      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileDown className="h-5 w-5 text-primary" />
+              Export Chat as PDF
+            </DialogTitle>
+            <DialogDescription>
+              Choose how you'd like to export your conversation
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-4">
+            {/* Full Export Option */}
+            <button
+              onClick={handleExportFullPDF}
+              disabled={isExporting}
+              className="w-full p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/5 transition-all text-left group disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
+                  <FileText className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-sm mb-1">Full Conversation</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Complete chat with timestamps, sources, and citations. Best for detailed review and study.
+                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant="outline" className="text-[10px]">
+                      {messages.length} messages
+                    </Badge>
+                    <Badge variant="outline" className="text-[10px]">
+                      {messages.reduce((sum, m) => sum + (m.sources?.length || 0), 0)} sources
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </button>
+
+            {/* Summary Export Option */}
+            <button
+              onClick={handleExportSummaryPDF}
+              disabled={isExporting}
+              className="w-full p-4 rounded-lg border-2 border-border hover:border-primary hover:bg-primary/5 transition-all text-left group disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="flex items-start gap-3">
+                <div className="h-10 w-10 rounded-lg bg-amber-400/10 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-400/20 transition-colors">
+                  <Sparkles className="h-5 w-5 text-amber-400" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-sm mb-1">Quick Summary</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Compact overview with statistics and your key questions. Perfect for quick reference.
+                  </p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Badge variant="outline" className="text-[10px]">
+                      {messages.filter(m => m.role === "user").length} questions
+                    </Badge>
+                    <Badge variant="outline" className="text-[10px]">
+                      1-2 pages
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </button>
+
+            {/* Info Box */}
+            <div className="p-3 rounded-lg bg-muted/30 border border-border/50">
+              <div className="flex items-start gap-2">
+                <Info className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                <div className="text-xs text-muted-foreground leading-relaxed">
+                  <p className="font-medium text-foreground mb-1">Export Details</p>
+                  <p>PDFs are styled with your course theme and include:</p>
+                  <ul className="list-disc list-inside mt-1 space-y-0.5 ml-2">
+                    <li>Course information and metadata</li>
+                    <li>Formatted messages with role indicators</li>
+                    <li>Source citations and page numbers</li>
+                    <li>Confidence indicators</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setExportDialogOpen(false)}
+              disabled={isExporting}
+            >
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <ChatPageContent />
+    </Suspense>
   );
 }

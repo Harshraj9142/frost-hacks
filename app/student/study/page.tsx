@@ -294,7 +294,7 @@ export default function StudentStudyPage() {
                   <label className="text-xs text-muted-foreground mb-2 block font-bold uppercase tracking-wider">
                     Study from:
                   </label>
-                  <Select value={selectedDocument} onValueChange={setSelectedDocument}>
+                  <Select value={selectedDocument} onValueChange={(value) => setSelectedDocument(value || "")}>
                     <SelectTrigger className="border-2 border-foreground/30">
                       <SelectValue />
                     </SelectTrigger>

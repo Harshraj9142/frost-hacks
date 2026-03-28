@@ -15,15 +15,9 @@ import { Badge } from "@/components/ui/badge";
 export function AnalyticsHelpDialog() {
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="border-2 border-foreground hover:bg-foreground hover:text-background font-bold uppercase tracking-wider"
-        >
-          <HelpCircle className="h-4 w-4 mr-2" />
-          Help
-        </Button>
+      <DialogTrigger className="border-2 border-foreground hover:bg-foreground hover:text-background font-bold uppercase tracking-wider inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2">
+        <HelpCircle className="h-4 w-4 mr-2" />
+        Help
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>

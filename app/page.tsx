@@ -225,8 +225,8 @@ function AnimatedSphere() {
       points.sort((a, b) => a.z - b.z);
 
       points.forEach((point) => {
-        const alpha = 0.15 + (point.z + 1) * 0.3;
-        ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+        const alpha = 0.55 + (point.z + 1) * 0.5;
+        ctx.fillStyle = `rgba(255, 69, 0, ${alpha})`;
         ctx.fillText(point.char, point.x, point.y);
       });
 
