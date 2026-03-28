@@ -69,7 +69,7 @@ export async function indexDocument(
 
     for (let i = 0; i < vectors.length; i += batchSize) {
       const batch = vectors.slice(i, i + batchSize);
-      await index.upsert({ records: batch });
+      await index.upsert(batch as any);
       vectorIds.push(...batch.map((v) => v.id));
     }
 
